@@ -1,1 +1,1 @@
-export { default } from './SlotGrid';
+export { default } from './SlotGrid.tsx';
