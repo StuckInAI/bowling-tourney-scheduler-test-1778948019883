@@ -1,109 +1,121 @@
-import { loadState, saveState } from '@/lib/storage';
-import type { AppState } from '@/types';
+import { loadState, saveState } from './storage';
+import type { User, Slot, Booking, Tournament, Notification } from '@/types';
 
 export function seedInitialData() {
-  const existing = loadState<AppState>();
-  if (existing && existing.users && existing.users.length > 0) {
-    return;
-  }
+  const existing = loadState();
+  if (existing?.seeded) return;
 
-  const today = new Date();
-  const fmt = (d: Date) => d.toISOString().split('T')[0];
-
-  const dates = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(today);
-    d.setDate(today.getDate() + i);
-    return fmt(d);
-  });
-
-  const timeSlots = [
-    '09:00', '10:00', '11:00', '12:00', '13:00',
-    '14:00', '15:00', '16:00', '17:00', '18:00',
-    '19:00', '20:00', '21:00',
+  const users: User[] = [
+    {
+      id: 'admin-1',
+      name: 'Admin User',
+      email: 'admin@bowlpro.com',
+      password: 'admin123',
+      role: 'admin',
+      subscription: 'vip',
+      subscriptionTier: 'vip',
+      joinedAt: new Date().toISOString(),
+    },
+    {
+      id: 'member-1',
+      name: 'Alice Johnson',
+      email: 'alice@example.com',
+      password: 'password123',
+      role: 'member',
+      subscription: 'premium',
+      subscriptionTier: 'premium',
+      joinedAt: new Date().toISOString(),
+    },
+    {
+      id: 'member-2',
+      name: 'Bob Smith',
+      email: 'bob@example.com',
+      password: 'password123',
+      role: 'member',
+      subscription: 'basic',
+      subscriptionTier: 'basic',
+      joinedAt: new Date().toISOString(),
+    },
   ];
 
-  const lanes = [1, 2, 3, 4, 5, 6, 7, 8];
+  const today = new Date();
+  const slots: Slot[] = [];
+  for (let d = 0; d < 7; d++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + d);
+    const dateStr = date.toISOString().split('T')[0];
+    for (let lane = 1; lane <= 8; lane++) {
+      for (let hour = 9; hour <= 20; hour++) {
+        const startHour = hour.toString().padStart(2, '0');
+        const endHour = (hour + 1).toString().padStart(2, '0');
+        const startTime = `${startHour}:00`;
+        const endTime = `${endHour}:00`;
+        slots.push({
+          id: `slot-${dateStr}-${lane}-${hour}`,
+          date: dateStr,
+          time: startTime,
+          startTime,
+          endTime,
+          lane,
+          status: 'available',
+        });
+      }
+    }
+  }
 
-  const slots = dates.flatMap((date) =>
-    timeSlots.flatMap((time) =>
-      lanes.map((lane) => ({
-        id: crypto.randomUUID(),
-        date,
-        time,
-        lane,
-        status: 'available' as const,
-        price: lane <= 4 ? 15 : 20,
-      }))
-    )
-  );
+  const bookings: Booking[] = [];
 
-  const adminUser = {
-    id: crypto.randomUUID(),
-    name: 'Admin User',
-    email: 'admin@bowlpro.com',
-    password: 'admin123',
-    role: 'admin' as const,
-    membershipType: 'premium' as const,
-    joinDate: '2023-01-01',
-    status: 'active' as const,
-  };
+  const tournaments: Tournament[] = [
+    {
+      id: 'tournament-1',
+      name: 'Summer Bowling Championship',
+      description: 'Annual summer tournament open to all members.',
+      date: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14).toISOString().split('T')[0],
+      startDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 14).toISOString().split('T')[0],
+      endDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 15).toISOString().split('T')[0],
+      status: 'upcoming',
+      maxParticipants: 32,
+      currentParticipants: 12,
+      entryFee: 25,
+      prize: '$500 cash prize',
+      lanes: [1, 2, 3, 4],
+      registeredUserIds: ['member-1'],
+    },
+    {
+      id: 'tournament-2',
+      name: 'Weekend League',
+      description: 'Weekly competitive league for experienced bowlers.',
+      date: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3).toISOString().split('T')[0],
+      startDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3).toISOString().split('T')[0],
+      endDate: new Date(today.getFullYear(), today.getMonth(), today.getDate() + 3).toISOString().split('T')[0],
+      status: 'upcoming',
+      maxParticipants: 16,
+      currentParticipants: 8,
+      entryFee: 15,
+      prize: 'Trophy + $200',
+      lanes: [5, 6],
+      registeredUserIds: [],
+    },
+  ];
 
-  const memberUser = {
-    id: crypto.randomUUID(),
-    name: 'Jane Member',
-    email: 'member@bowlpro.com',
-    password: 'member123',
-    role: 'member' as const,
-    membershipType: 'basic' as const,
-    joinDate: '2024-03-15',
-    status: 'active' as const,
-  };
+  const notifications: Notification[] = [
+    {
+      id: 'notif-1',
+      title: 'Welcome to BowlPro!',
+      message: 'Welcome to the BowlPro reservation system. Book your lanes and join tournaments today!',
+      targetRole: 'all',
+      createdAt: new Date().toISOString(),
+      readBy: [],
+    },
+  ];
 
-  const extraMembers = [
-    { name: 'Alice Johnson', email: 'alice@example.com', membershipType: 'premium' as const },
-    { name: 'Bob Smith', email: 'bob@example.com', membershipType: 'basic' as const },
-    { name: 'Carol White', email: 'carol@example.com', membershipType: 'vip' as const },
-  ].map((m) => ({
-    id: crypto.randomUUID(),
-    ...m,
-    password: 'pass123',
-    role: 'member' as const,
-    joinDate: '2024-01-10',
-    status: 'active' as const,
-  }));
-
-  const tournament = {
-    id: crypto.randomUUID(),
-    name: 'Spring Championship 2025',
-    description: 'Annual spring bowling championship open to all members.',
-    date: dates[3],
-    startTime: '10:00',
-    endTime: '18:00',
-    lanes: [5, 6, 7, 8],
-    maxParticipants: 32,
-    registeredParticipants: [memberUser.id],
-    prizePool: 500,
-    status: 'upcoming' as const,
-    entryFee: 25,
-  };
-
-  const notification = {
-    id: crypto.randomUUID(),
-    title: 'Welcome to BowlPro!',
-    message: 'Welcome to the BowlPro bowling reservation system. Book your lanes and join tournaments!',
-    targetRole: 'all' as const,
-    createdAt: new Date().toISOString(),
-    read: false,
-  };
-
-  const seedState: AppState = {
-    users: [adminUser, memberUser, ...extraMembers],
+  saveState({
+    users,
     slots,
-    bookings: [],
-    tournaments: [tournament],
-    notifications: [notification],
+    bookings,
+    tournaments,
+    notifications,
     currentUserId: null,
-  };
-
-  saveState<AppState>(seedState);
+    seeded: true,
+  });
 }
