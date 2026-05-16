@@ -1,97 +1,114 @@
-import { saveState, loadState } from '@/lib/storage';
-import type { AppState } from '@/types';
+import { loadState, saveState } from '@/lib/storage';
+import type { User, Slot, Tournament } from '@/types';
 
-const now = new Date();
-const today = now.toISOString().split('T')[0];
+export function seedInitialData() {
+  const state = loadState();
+  if (state.users.length > 0) return; // already seeded
 
-function addDays(base: string, days: number): string {
-  const d = new Date(base);
-  d.setDate(d.getDate() + days);
-  return d.toISOString().split('T')[0];
-}
+  const users: User[] = [
+    {
+      id: 'admin-1',
+      name: 'Admin User',
+      email: 'admin@bowl.com',
+      password: 'admin123',
+      role: 'admin',
+      subscriptionTier: 'none',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'member-1',
+      name: 'Jane Member',
+      email: 'member@bowl.com',
+      password: 'member123',
+      role: 'member',
+      subscriptionTier: 'basic',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'member-2',
+      name: 'Bob Smith',
+      email: 'bob@bowl.com',
+      password: 'bob123',
+      role: 'member',
+      subscriptionTier: 'premium',
+      createdAt: new Date().toISOString(),
+    },
+  ];
 
-export function seedInitialData(): void {
-  const existing = loadState<AppState>();
-  if (existing && existing.users && existing.users.length > 0) return;
+  const today = new Date();
+  const slots: Slot[] = [];
+  for (let d = 0; d < 7; d++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + d);
+    const dateStr = date.toISOString().split('T')[0];
+    for (let lane = 1; lane <= 4; lane++) {
+      const times = [
+        { start: '09:00', end: '10:00' },
+        { start: '10:00', end: '11:00' },
+        { start: '14:00', end: '15:00' },
+        { start: '15:00', end: '16:00' },
+      ];
+      times.forEach(({ start, end }, i) => {
+        slots.push({
+          id: `slot-${d}-${lane}-${i}`,
+          date: dateStr,
+          startTime: start,
+          endTime: end,
+          lane,
+          capacity: 6,
+          bookedCount: 0,
+          status: 'available',
+          price: 20,
+        });
+      });
+    }
+  }
 
-  const state: AppState = {
-    currentUser: null,
-    users: [
-      {
-        id: 'admin-1',
-        name: 'Admin User',
-        email: 'admin@bowlpro.com',
-        password: 'admin123',
-        role: 'admin',
-        joinedAt: today,
-      },
-      {
-        id: 'member-1',
-        name: 'John Doe',
-        email: 'john@example.com',
-        password: 'member123',
-        role: 'member',
-        membershipType: 'premium',
-        membershipExpiry: addDays(today, 30),
-        phone: '555-0101',
-        joinedAt: addDays(today, -60),
-      },
-      {
-        id: 'member-2',
-        name: 'Jane Smith',
-        email: 'jane@example.com',
-        password: 'member123',
-        role: 'member',
-        membershipType: 'basic',
-        membershipExpiry: addDays(today, 15),
-        phone: '555-0102',
-        joinedAt: addDays(today, -30),
-      },
-    ],
-    slots: [
-      { id: 's1', lane: 1, date: today, startTime: '09:00', endTime: '10:00', status: 'available', price: 20 },
-      { id: 's2', lane: 1, date: today, startTime: '10:00', endTime: '11:00', status: 'booked', price: 20 },
-      { id: 's3', lane: 2, date: today, startTime: '09:00', endTime: '10:00', status: 'available', price: 20 },
-      { id: 's4', lane: 2, date: today, startTime: '10:00', endTime: '11:00', status: 'maintenance', price: 20 },
-      { id: 's5', lane: 3, date: today, startTime: '09:00', endTime: '10:00', status: 'available', price: 25 },
-      { id: 's6', lane: 3, date: today, startTime: '10:00', endTime: '11:00', status: 'available', price: 25 },
-      { id: 's7', lane: 1, date: addDays(today, 1), startTime: '09:00', endTime: '10:00', status: 'available', price: 20 },
-      { id: 's8', lane: 2, date: addDays(today, 1), startTime: '09:00', endTime: '10:00', status: 'available', price: 20 },
-    ],
-    bookings: [
-      {
-        id: 'b1',
-        userId: 'member-1',
-        slotId: 's2',
-        bookedAt: today,
-        status: 'confirmed',
-      },
-    ],
-    tournaments: [
-      {
-        id: 't1',
-        name: 'Summer Championship',
-        date: addDays(today, 7),
-        startTime: '10:00',
-        endTime: '18:00',
-        maxParticipants: 16,
-        registeredParticipants: ['member-1'],
-        entryFee: 50,
-        prize: '$500 + Trophy',
-        status: 'upcoming',
-        description: 'Annual summer bowling championship open to all members.',
-      },
-    ],
-    notifications: [
-      {
-        id: 'n1',
-        title: 'Welcome to BowlPro!',
-        message: 'Thank you for joining our bowling reservation system.',
-        createdAt: today,
-        recipientType: 'all',
-      },
-    ],
-  };
+  const tournaments: Tournament[] = [
+    {
+      id: 'tourney-1',
+      name: 'Summer Strike Championship',
+      description: 'Annual summer bowling tournament',
+      startDate: '2025-07-01',
+      endDate: '2025-07-15',
+      status: 'upcoming',
+      maxParticipants: 16,
+      entryFee: 25,
+      prizePool: 500,
+      format: 'single-elimination',
+      participants: [
+        {
+          userId: 'member-1',
+          userName: 'Jane Member',
+          userEmail: 'member@bowl.com',
+          status: 'registered',
+          joinedAt: new Date().toISOString(),
+        },
+      ],
+      matches: [],
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'tourney-2',
+      name: 'Weekend Warriors Cup',
+      description: 'Casual weekend tournament for all skill levels',
+      startDate: '2025-08-10',
+      endDate: '2025-08-10',
+      status: 'draft',
+      maxParticipants: 8,
+      entryFee: 10,
+      prizePool: 100,
+      format: 'round-robin',
+      participants: [],
+      matches: [],
+      createdAt: new Date().toISOString(),
+    },
+  ];
 
-  saveState(state);
+  saveState({
+    ...state,
+    users,
+    slots,
+    tournaments,
+  });
 }
