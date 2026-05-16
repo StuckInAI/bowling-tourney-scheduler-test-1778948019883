@@ -1,107 +1,103 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useAppContext } from '@/context/AppContext';
 import Card from '@/components/ui/Card';
 import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
 import Select from '@/components/ui/Select';
-import { isWithinNext24Hours, generateConfirmationCode } from '@/lib/utils';
-import type { Booking } from '@/types';
+import { formatDate } from '@/lib/utils';
+import styles from '@/pages/public/LandingPage.module.css';
 
 export default function PublicBookingPage() {
-  const { slots, addBooking, updateSlot } = useAppContext();
-  const navigate = useNavigate();
+  const { slots, createBooking, updateSlot } = useAppContext();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
   const [selectedSlotId, setSelectedSlotId] = useState('');
-  const [success, setSuccess] = useState(false);
-  const [code, setCode] = useState('');
+  const [submitted, setSubmitted] = useState(false);
 
-  // Filter for available slots in next 24 hours
-  const availableNext24h = slots.filter(s => 
-    s.status === 'available' && 
-    isWithinNext24Hours(s.date, s.startTime)
+  const availableSlots = slots.filter(
+    (s) => s.status === 'available'
   );
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleBooking = (e: React.FormEvent) => {
     e.preventDefault();
-    const selectedSlot = slots.find(s => s.id === selectedSlotId);
+    const selectedSlot = slots.find((s) => s.id === selectedSlotId);
     if (!selectedSlot) return;
 
-    const confirmationCode = generateConfirmationCode();
-    
-    addBooking({
-      slotId: selectedSlot.id,
-      userId: 'outsider',
+    createBooking({
       userName: name,
       userEmail: email,
-      userPhone: phone,
+      slotId: selectedSlot.id,
       date: selectedSlot.date,
-      time: selectedSlot.startTime,
+      startTime: selectedSlot.startTime,
+      endTime: selectedSlot.endTime,
       lane: selectedSlot.lane,
       status: 'confirmed',
-      confirmationCode,
       createdAt: new Date().toISOString(),
     });
 
+    // Mark slot as booked
     updateSlot(selectedSlot.id, { status: 'booked_outsider' });
-    setCode(confirmationCode);
-    setSuccess(true);
+    setSubmitted(true);
   };
 
-  if (success) {
+  if (submitted) {
     return (
-      <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
-        <Card className="max-w-md w-full text-center">
-          <div className="text-5xl mb-4">🎳</div>
-          <h2 className="text-2xl font-bold mb-2">Booking Confirmed!</h2>
-          <p className="text-slate-600 mb-6">Your reservation code is: <span className="font-mono font-bold text-primary">{code}</span></p>
-          <p className="text-sm text-slate-500 mb-6">Please show this code at the counter. A confirmation email has been sent to {email}.</p>
-          <Button onClick={() => navigate('/')} fullWidth>Return Home</Button>
+      <div className={styles.hero} style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+        <Card style={{ maxWidth: '400px', textAlign: 'center' }}>
+          <h2 style={{ marginBottom: '1rem', color: 'var(--color-primary)' }}>Booking Confirmed!</h2>
+          <p style={{ marginBottom: '1.5rem', color: 'var(--color-gray-600)' }}>
+            Thank you, {name}. Your lane reservation has been successfully placed.
+          </p>
+          <Button onClick={() => window.location.href = '/'}>Return Home</Button>
         </Card>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-6 bg-slate-50">
-      <div className="max-w-xl w-full">
-        <Card padding="lg">
-          <h2 className="text-2xl font-bold text-center mb-1">Public Lane Booking</h2>
-          <p className="text-center text-slate-500 mb-8">Available slots in the next 24 hours</p>
-          
-          {availableNext24h.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-slate-600 mb-4">Sorry, no lanes are currently available in the next 24 hours.</p>
-              <Button onClick={() => navigate('/')} variant="secondary">Back</Button>
-            </div>
-          ) : (
-            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <Input label="Full Name" value={name} onChange={e => setName(e.target.value)} required />
-                <Input label="Email Address" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-              </div>
-              <Input label="Phone Number" type="tel" value={phone} onChange={e => setPhone(e.target.value)} required />
-              
-              <Select
-                label="Choose Lane & Time"
-                value={selectedSlotId}
-                onChange={e => setSelectedSlotId(e.target.value)}
-                required
-                options={availableNext24h.map(s => ({
-                  value: s.id,
-                  label: `Lane ${s.lane} at ${s.startTime} (${s.date})`
-                }))}
-              />
-              
-              <div className="mt-4">
-                <Button type="submit" fullWidth size="lg">Confirm Booking</Button>
-              </div>
-            </form>
-          )}
-        </Card>
-      </div>
+    <div className={styles.hero} style={{ minHeight: '100vh', padding: '2rem 1rem' }}>
+      <Card style={{ maxWidth: '500px', margin: '0 auto' }}>
+        <h1 style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '1.5rem', fontWeight: 700 }}>
+          Book a Lane
+        </h1>
+        <form onSubmit={handleBooking} style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
+          <Input
+            label="Full Name"
+            required
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            placeholder="John Doe"
+          />
+          <Input
+            label="Email Address"
+            type="email"
+            required
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="john@example.com"
+          />
+          <Select
+            label="Select Available Slot"
+            required
+            value={selectedSlotId}
+            onChange={(e) => setSelectedSlotId(e.target.value)}
+            placeholder="Choose a time and lane..."
+            options={availableSlots.map((s) => ({
+              value: s.id,
+              label: `Lane ${s.lane} at ${s.startTime} (${formatDate(new Date(s.date))})`,
+            }))}
+          />
+          <Button type="submit" fullWidth variant="primary" disabled={!selectedSlotId}>
+            Confirm Reservation
+          </Button>
+        </form>
+        <p style={{ marginTop: '1.5rem', fontSize: '0.8rem', color: 'var(--color-gray-500)', textAlign: 'center' }}>
+          Members enjoy discounted rates and priority booking. 
+          <a href="/register" style={{ marginLeft: '0.25rem', color: 'var(--color-primary)', fontWeight: 600 }}>
+            Sign up here
+          </a>
+        </p>
+      </Card>
     </div>
   );
 }

@@ -2,76 +2,67 @@ import { useAppContext } from '@/context/AppContext';
 import Card from '@/components/ui/Card';
 import Badge from '@/components/ui/Badge';
 import { formatDate } from '@/lib/utils';
-import { Calendar, Trophy, Star } from 'lucide-react';
+import { Calendar, Trophy, Clock } from 'lucide-react';
 
 export default function MemberDashboard() {
   const { currentUser, bookings, tournaments } = useAppContext();
 
-  const myBookings = bookings.filter(b => b.userId === currentUser?.id).slice(0, 5);
-  const upcomingTournaments = tournaments.filter(t => t.status === 'upcoming').slice(0, 3);
+  const myBookings = bookings.filter(
+    (b) => b.userId === currentUser?.id && b.status === 'confirmed'
+  ).slice(0, 3);
 
-  const subLabel = currentUser?.subscription === 'none'
-    ? 'No Active Plan'
-    : `${currentUser?.subscription?.charAt(0).toUpperCase()}${currentUser?.subscription?.slice(1)} Plan`;
+  const upcomingTournaments = tournaments.filter(
+    (t) => t.status === 'upcoming'
+  ).slice(0, 2);
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
       <header>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Welcome back, {currentUser?.name}!</h1>
-        <p style={{ color: '#64748b' }}>Manage your bookings and tournament registrations.</p>
+        <h1 style={{ fontSize: '1.875rem', fontWeight: 700 }}>Welcome back, {currentUser?.name}!</h1>
+        <p style={{ color: '#64748b' }}>Here's what's happening at the club.</p>
       </header>
 
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
         <Card>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ padding: '0.5rem', background: '#f1f5f9', borderRadius: '0.5rem' }}><Star color="#eab308" /></div>
-            <div>
-              <h3 style={{ fontWeight: 600 }}>Membership</h3>
-              <p style={{ fontSize: '0.875rem', color: '#64748b' }}>{subLabel}</p>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <Calendar style={{ color: 'var(--color-primary)' }} />
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Your Next Bookings</h2>
           </div>
-          <Badge variant={currentUser?.subscription === 'none' ? 'neutral' : 'purple'}>
-            {currentUser?.subscription?.toUpperCase() || 'NONE'}
-          </Badge>
-        </Card>
-
-        <Card>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ padding: '0.5rem', background: '#f1f5f9', borderRadius: '0.5rem' }}><Calendar color="#3b82f6" /></div>
-            <div>
-              <h3 style={{ fontWeight: 600 }}>Recent Bookings</h3>
-              <p style={{ fontSize: '0.875rem', color: '#64748b' }}>{myBookings.length} total bookings</p>
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {myBookings.map(b => (
-              <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.5rem', borderRadius: '0.25rem', border: '1px solid #f1f5f9' }}>
-                <div>
-                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>Lane {b.laneNumber ?? b.lane} · {b.date}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{b.time || `${b.startTime}–${b.endTime}`}</div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {myBookings.length > 0 ? (
+              myBookings.map((b) => (
+                <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '0.5rem' }}>
+                  <div>
+                    <div style={{ fontWeight: 500 }}>Lane {b.lane}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{formatDate(new Date(b.date))}</div>
+                    <div style={{ fontSize: '0.8rem', color: '#64748b' }}>{b.time || `${b.startTime}–${b.endTime}`}</div>
+                  </div>
+                  <Badge variant="success">Confirmed</Badge>
                 </div>
-                <Badge variant={b.status === 'confirmed' ? 'success' : 'neutral'}>{b.status}</Badge>
-              </div>
-            ))}
+              ))
+            ) : (
+              <p style={{ fontSize: '0.9rem', color: '#64748b', textAlign: 'center', padding: '1rem' }}>No upcoming bookings.</p>
+            )}
           </div>
         </Card>
 
         <Card>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '1rem', marginBottom: '1.5rem' }}>
-            <div style={{ padding: '0.5rem', background: '#f1f5f9', borderRadius: '0.5rem' }}><Trophy color="#f59e0b" /></div>
-            <div>
-              <h3 style={{ fontWeight: 600 }}>Tournaments</h3>
-              <p style={{ fontSize: '0.875rem', color: '#64748b' }}>Join upcoming events</p>
-            </div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginBottom: '1.25rem' }}>
+            <Trophy style={{ color: 'var(--color-accent-dark)' }} />
+            <h2 style={{ fontSize: '1.1rem', fontWeight: 600 }}>Upcoming Tournaments</h2>
           </div>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-            {upcomingTournaments.map(t => (
-              <div key={t.id} style={{ padding: '0.5rem', borderRadius: '0.25rem', border: '1px solid #f1f5f9' }}>
-                <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{t.title}</div>
-                <div style={{ fontSize: '0.875rem', color: '#64748b' }}>{formatDate(new Date(t.date))}</div>
-                <div style={{ fontSize: '0.875rem', color: '#64748b' }}>{t.participants.length} / {t.maxParticipants} participants</div>
-              </div>
-            ))}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            {upcomingTournaments.length > 0 ? (
+              upcomingTournaments.map((t) => (
+                <div key={t.id} style={{ padding: '0.75rem', border: '1px solid #e2e8f0', borderRadius: '0.5rem' }}>
+                  <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{t.title}</div>
+                  <div style={{ fontSize: '0.875rem', color: '#64748b' }}>{formatDate(new Date(t.date))}</div>
+                  <div style={{ fontSize: '0.875rem', color: '#64748b' }}>{t.participants.length} / {t.maxParticipants} participants</div>
+                </div>
+              ))
+            ) : (
+              <p style={{ fontSize: '0.9rem', color: '#64748b', textAlign: 'center', padding: '1rem' }}>No tournaments scheduled.</p>
+            )}
           </div>
         </Card>
       </div>

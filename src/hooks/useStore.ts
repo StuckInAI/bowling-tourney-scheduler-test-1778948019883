@@ -1,131 +1,76 @@
 import { useState, useEffect } from 'react';
-import type { User, Booking, Slot, Tournament, Notification, SubscriptionType } from '@/types';
-import { storage } from '@/lib/storage';
+import { storage } from '@/lib/utils';
+import type { User, Slot, Booking, Tournament, Notification, AppContextType } from '@/types';
 
-export function useStore() {
+export function useStore(): AppContextType {
   const [currentUser, setCurrentUser] = useState<User | null>(storage.get('currentUser'));
   const [users, setUsers] = useState<User[]>(storage.get('users') || []);
-  const [bookings, setBookings] = useState<Booking[]>(storage.get('bookings') || []);
   const [slots, setSlots] = useState<Slot[]>(storage.get('slots') || []);
+  const [bookings, setBookings] = useState<Booking[]>(storage.get('bookings') || []);
   const [tournaments, setTournaments] = useState<Tournament[]>(storage.get('tournaments') || []);
   const [notifications, setNotifications] = useState<Notification[]>(storage.get('notifications') || []);
 
   useEffect(() => {
     storage.set('currentUser', currentUser);
     storage.set('users', users);
-    storage.set('bookings', bookings);
     storage.set('slots', slots);
+    storage.set('bookings', bookings);
     storage.set('tournaments', tournaments);
     storage.set('notifications', notifications);
-  }, [currentUser, users, bookings, slots, tournaments, notifications]);
+  }, [currentUser, users, slots, bookings, tournaments, notifications]);
 
-  const login = (email: string, _password?: string): User | null => {
-    const user = users.find((u) => u.email === email);
+  const login = async (email: string, _password: string) => {
+    const user = users.find(u => u.email === email);
     if (user) {
       setCurrentUser(user);
-      return user;
+    } else {
+      throw new Error('User not found');
     }
-    return null;
   };
 
-  const register = (userData: Partial<User>): User | null => {
-    const newUser: User = {
-      id: Math.random().toString(36).substr(2, 9),
-      email: userData.email || '',
-      name: userData.name || '',
-      role: 'member',
-      joinedAt: new Date().toISOString(),
-      subscription: 'none',
-      subscriptionStatus: 'active',
-      phone: userData.phone || '',
-      ...userData,
-    } as User;
-    
+  const register = async (name: string, email: string, _password: string) => {
+    const newUser: User = { id: Math.random().toString(36).substr(2, 9), name, email, role: 'member', subscriptionStatus: 'inactive' };
     setUsers([...users, newUser]);
     setCurrentUser(newUser);
-    return newUser;
   };
 
-  const logout = () => {
-    setCurrentUser(null);
-  };
+  const logout = () => setCurrentUser(null);
 
-  const addBooking = (bookingData: Omit<Booking, 'id'>) => {
-    const newBooking = { ...bookingData, id: Math.random().toString(36).substr(2, 9) } as Booking;
+  const createBooking = (booking: Omit<Booking, 'id'>) => {
+    const newBooking: Booking = { ...booking, id: Math.random().toString(36).substr(2, 9) };
     setBookings([...bookings, newBooking]);
-    
-    if (bookingData.slotId) {
-      const slot = slots.find(s => s.id === bookingData.slotId);
-      if (slot) {
-        updateSlot({ ...slot, isBooked: true, bookedByType: bookingData.type });
-      }
-    }
   };
 
   const cancelBooking = (id: string) => {
-    const booking = bookings.find(b => b.id === id);
-    if (booking && booking.slotId) {
-      const slot = slots.find(s => s.id === booking.slotId);
-      if (slot) {
-        updateSlot({ ...slot, isBooked: false, bookedByType: undefined });
+    setBookings(bookings.map(b => b.id === id ? { ...b, status: 'cancelled' } : b));
+  };
+
+  const updateSlot = (id: string, updates: Partial<Slot>) => {
+    setSlots(slots.map(s => s.id === id ? { ...s, ...updates } : s));
+  };
+
+  const registerForTournament = (tournamentId: string, userId: string) => {
+    setTournaments(tournaments.map(t => {
+      if (t.id === tournamentId && !t.participants.includes(userId)) {
+        return { ...t, participants: [...t.participants, userId] };
       }
-    }
-    setBookings(bookings.filter((b) => b.id !== id));
-  };
-
-  const updateUser = (updatedUser: User) => {
-    setUsers(users.map((u) => (u.id === updatedUser.id ? updatedUser : u)));
-    if (currentUser?.id === updatedUser.id) setCurrentUser(updatedUser);
-  };
-
-  const updateSlot = (updatedSlot: Slot) => {
-    setSlots(slots.map((s) => (s.id === updatedSlot.id ? updatedSlot : s)));
-  };
-
-  const addTournament = (tournamentData: Omit<Tournament, 'id'>) => {
-    const newTournament = { ...tournamentData, id: Math.random().toString(36).substr(2, 9) } as Tournament;
-    setTournaments([...tournaments, newTournament]);
-  };
-
-  const deleteTournament = (id: string) => {
-    setTournaments(tournaments.filter((t) => t.id !== id));
-  };
-
-  const addNotification = (notifData: Omit<Notification, 'id'>) => {
-    const newNotif = { ...notifData, id: Math.random().toString(36).substr(2, 9), createdAt: new Date().toISOString(), isRead: false } as Notification;
-    setNotifications([...notifications, newNotif]);
-  };
-
-  const markNotificationRead = (id: string) => {
-    setNotifications(notifications.map(n => n.id === id ? { ...n, isRead: true } : n));
-  };
-
-  const updateSubscription = (userId: string, type: SubscriptionType) => {
-    const updatedUsers = users.map(u => u.id === userId ? { ...u, subscription: type, subscriptionStatus: 'active' as const } : u);
-    setUsers(updatedUsers);
-    if (currentUser?.id === userId) {
-      setCurrentUser({ ...currentUser, subscription: type, subscriptionStatus: 'active' });
-    }
+      return t;
+    }));
   };
 
   return {
     currentUser,
     users,
-    bookings,
     slots,
+    bookings,
     tournaments,
     notifications,
     login,
     register,
     logout,
-    addBooking,
+    createBooking,
     cancelBooking,
-    updateUser,
     updateSlot,
-    addTournament,
-    deleteTournament,
-    addNotification,
-    markNotificationRead,
-    updateSubscription,
+    registerForTournament
   };
 }

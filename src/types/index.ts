@@ -1,50 +1,48 @@
 export type UserRole = 'admin' | 'member';
-export type SubscriptionType = 'none' | 'basic' | 'premium' | 'pro';
 
 export interface User {
   id: string;
-  email: string;
   name: string;
+  email: string;
   role: UserRole;
-  phone: string;
-  joinedAt: string;
-  subscription: SubscriptionType;
-  subscriptionStatus: 'active' | 'expired' | 'canceled';
+  subscriptionStatus?: 'active' | 'inactive';
 }
 
-export interface Tournament {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  description: string;
-  prize?: string;
-  participants: number;
-  status: 'upcoming' | 'ongoing' | 'completed';
-}
+export type SlotStatus = 'available' | 'booked_member' | 'booked_outsider' | 'tournament' | 'blocked';
 
 export interface Slot {
   id: string;
-  laneId: number;
+  lane: number;
+  date: string;
   startTime: string;
   endTime: string;
-  date: string;
-  isBooked: boolean;
-  bookedByType?: 'member' | 'outsider' | 'tournament' | 'blocked';
+  status: SlotStatus;
 }
 
 export interface Booking {
   id: string;
-  userId: string;
-  userName: string;
+  userId?: string;
+  userEmail?: string;
+  userName?: string;
   slotId: string;
-  laneId: number;
+  date: string;
   startTime: string;
   endTime: string;
+  lane: number;
+  time?: string;
+  status: 'confirmed' | 'cancelled';
+  createdAt: string;
+}
+
+export interface Tournament {
+  id: string;
+  title: string;
+  description: string;
   date: string;
-  status: 'confirmed' | 'cancelled' | 'attended';
-  type: 'member' | 'outsider';
-  notes?: string;
+  time: string;
+  participants: string[]; // Array of user IDs
+  maxParticipants: number;
+  status: 'upcoming' | 'ongoing' | 'completed';
 }
 
 export interface Notification {
@@ -52,11 +50,22 @@ export interface Notification {
   userId: string;
   title: string;
   message: string;
-  createdAt: string;
   isRead: boolean;
+  createdAt: string;
 }
 
-export type LoginCredentials = {
-  email: string;
-  password?: string;
-};
+export interface AppContextType {
+  currentUser: User | null;
+  users: User[];
+  slots: Slot[];
+  bookings: Booking[];
+  tournaments: Tournament[];
+  notifications: Notification[];
+  login: (email: string, password: string) => Promise<void>;
+  register: (name: string, email: string, password: string) => Promise<void>;
+  logout: () => void;
+  createBooking: (booking: Omit<Booking, 'id'>) => void;
+  cancelBooking: (id: string) => void;
+  updateSlot: (id: string, updates: Partial<Slot>) => void;
+  registerForTournament: (tournamentId: string, userId: string) => void;
+}
