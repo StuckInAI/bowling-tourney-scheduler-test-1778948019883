@@ -1,11 +1,10 @@
 import { createContext, useContext } from 'react';
-import type { ReactNode } from 'react';
 import type { AppContextType } from '@/types';
 import { useStore } from '@/hooks/useStore';
 
 const AppContext = createContext<AppContextType | null>(null);
 
-export function AppProvider({ children }: { children: ReactNode }) {
+export function AppProvider({ children }: { children: React.ReactNode }) {
   const store = useStore();
   return <AppContext.Provider value={store}>{children}</AppContext.Provider>;
 }

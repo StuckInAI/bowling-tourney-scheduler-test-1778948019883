@@ -1,103 +1,68 @@
-import type { Slot, SlotStatus } from '@/types';
+import type { Slot } from '@/types';
 
 export interface SlotGridProps {
   slots: Slot[];
-  onSlotClick?: (slot: Slot) => void;
+  onSlotClick: (slot: Slot) => void;
+  selectedSlotId?: string;
 }
 
-function getStatusLabel(status: SlotStatus): string {
-  switch (status) {
-    case 'available': return 'Available';
-    case 'booked': return 'Booked';
-    case 'maintenance': return 'Maintenance';
-    default: return status;
-  }
-}
+export default function SlotGrid({ slots, onSlotClick, selectedSlotId }: SlotGridProps) {
+  const getSlotStyle = (slot: Slot, isSelected: boolean) => {
+    if (slot.status === 'closed') {
+      return 'bg-slate-100 text-slate-400 cursor-not-allowed border border-slate-200';
+    }
+    if (slot.status === 'full') {
+      return 'bg-red-50 text-red-400 cursor-not-allowed border border-red-200';
+    }
+    if (isSelected) {
+      return 'bg-blue-600 text-white border border-blue-700 cursor-pointer';
+    }
+    return 'bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 cursor-pointer';
+  };
 
-function getStatusSymbol(status: SlotStatus): string {
-  switch (status) {
-    case 'available': return '✓';
-    case 'booked': return '●';
-    case 'maintenance': return 'X';
-    default: return '?';
-  }
-}
-
-export default function SlotGrid({ slots, onSlotClick }: SlotGridProps) {
-  if (!slots || slots.length === 0) {
+  if (slots.length === 0) {
     return (
-      <div className="text-center py-8 text-slate-500">
-        No slots available for the selected date.
+      <div className="text-center py-12 text-slate-500">
+        <p className="text-lg">No slots available for the selected date.</p>
       </div>
     );
   }
 
-  const lanes = Array.from(new Set(slots.map(s => s.lane))).sort((a, b) => a - b);
-  const times = Array.from(new Set(slots.map(s => s.startTime))).sort();
+  const grouped = slots.reduce<Record<string, Slot[]>>((acc, slot) => {
+    const key = `Lane ${slot.lane}`;
+    if (!acc[key]) acc[key] = [];
+    acc[key].push(slot);
+    return acc;
+  }, {});
 
   return (
-    <div className="overflow-x-auto">
-      <table className="min-w-full border-collapse">
-        <thead>
-          <tr>
-            <th className="px-3 py-2 text-left text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200">
-              Time \ Lane
-            </th>
-            {lanes.map(lane => (
-              <th
-                key={lane}
-                className="px-3 py-2 text-center text-xs font-semibold text-slate-500 bg-slate-50 border border-slate-200"
-              >
-                Lane {lane}
-              </th>
-            ))}
-          </tr>
-        </thead>
-        <tbody>
-          {times.map(time => (
-            <tr key={time}>
-              <td className="px-3 py-2 text-xs font-medium text-slate-600 bg-slate-50 border border-slate-200 whitespace-nowrap">
-                {time}
-              </td>
-              {lanes.map(lane => {
-                const slot = slots.find(s => s.lane === lane && s.startTime === time);
-                if (!slot) {
-                  return (
-                    <td key={lane} className="px-3 py-2 border border-slate-200 text-center text-xs text-slate-300">
-                      —
-                    </td>
-                  );
-                }
-                const isAvailable = slot.status === 'available';
-                const isBooked = slot.status === 'booked';
-                const isMaintenance = slot.status === 'maintenance';
-                return (
-                  <td
-                    key={lane}
-                    className={[
-                      'px-3 py-2 border border-slate-200 text-center text-xs font-medium transition-colors',
-                      isAvailable && onSlotClick ? 'cursor-pointer hover:bg-blue-50' : '',
-                      isAvailable ? 'bg-green-50 text-green-700' : '',
-                      isBooked ? 'bg-red-50 text-red-600' : '',
-                      isMaintenance ? 'bg-slate-100 text-slate-400' : '',
-                    ].filter(Boolean).join(' ')}
-                    onClick={() => isAvailable && onSlotClick && onSlotClick(slot)}
-                    title={getStatusLabel(slot.status)}
-                  >
-                    <div>{getStatusSymbol(slot.status)}</div>
-                    <div className="text-slate-400">${slot.price}</div>
-                  </td>
-                );
-              })}
-            </tr>
-          ))}
-        </tbody>
-      </table>
-      <div className="flex gap-4 mt-3 text-xs text-slate-500">
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-green-200 inline-block"></span> Available</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-red-200 inline-block"></span> Booked</span>
-        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded bg-slate-200 inline-block"></span> Maintenance</span>
-      </div>
+    <div className="space-y-4">
+      {Object.entries(grouped).map(([lane, laneSlots]) => (
+        <div key={lane}>
+          <h3 className="text-sm font-semibold text-slate-600 mb-2">{lane}</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-2">
+            {laneSlots.map(slot => {
+              const isSelected = slot.id === selectedSlotId;
+              return (
+                <button
+                  key={slot.id}
+                  disabled={slot.status === 'closed' || slot.status === 'full'}
+                  onClick={() => onSlotClick(slot)}
+                  className={`p-3 rounded-lg text-xs font-medium transition-all ${getSlotStyle(slot, isSelected)}`}
+                >
+                  <div>{slot.startTime} - {slot.endTime}</div>
+                  <div className="mt-1 opacity-75">
+                    {slot.status === 'closed' ? 'Closed' :
+                     slot.status === 'full' ? 'Full' :
+                     `${slot.capacity - slot.bookedCount} left`}
+                  </div>
+                  <div className="mt-0.5 font-semibold">${slot.price}</div>
+                </button>
+              );
+            })}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

@@ -7,6 +7,8 @@ export interface User {
   password: string;
   role: UserRole;
   subscriptionTier: 'none' | 'basic' | 'premium';
+  subscriptionStatus: 'active' | 'inactive';
+  subscriptionExpiry?: string;
   createdAt: string;
 }
 
@@ -24,85 +26,86 @@ export interface Slot {
 
 export interface Booking {
   id: string;
-  userId: string;
   slotId: string;
+  userId?: string;
+  userName?: string;
+  outsiderName?: string;
+  outsiderEmail?: string;
+  outsiderPhone?: string;
+  confirmationCode?: string;
+  status: 'confirmed' | 'cancelled' | 'pending';
+  createdAt: string;
   date: string;
   startTime: string;
   endTime: string;
   lane: number;
-  status: 'confirmed' | 'cancelled' | 'pending';
-  createdAt: string;
-  guestName?: string;
-  guestEmail?: string;
-  guestPhone?: string;
 }
-
-export type TournamentStatus = 'upcoming' | 'active' | 'completed' | 'draft' | 'cancelled';
 
 export interface TournamentParticipant {
   userId: string;
   userName: string;
   userEmail: string;
-  status: 'confirmed' | 'registered' | 'eliminated' | 'winner';
+  name: string;
+  status: 'registered' | 'checked-in' | 'eliminated' | 'winner';
   joinedAt: string;
 }
 
 export interface TournamentMatch {
   id: string;
   round: number;
-  player1Id: string;
-  player2Id: string;
+  participant1Id: string;
+  participant2Id: string;
   winnerId?: string;
-  score?: string;
+  status: 'scheduled' | 'in-progress' | 'completed';
+  scheduledTime?: string;
 }
 
 export interface Tournament {
   id: string;
   name: string;
   description: string;
-  startDate: string;
-  endDate: string;
-  status: TournamentStatus;
+  date: string;
+  startTime: string;
+  endTime: string;
   maxParticipants: number;
   entryFee: number;
-  prizePool: number;
-  format: string;
+  prize?: string;
+  status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
   participants: TournamentParticipant[];
   matches: TournamentMatch[];
   createdAt: string;
 }
 
-export interface Notification {
+export interface AppNotification {
   id: string;
-  userId: string | 'all';
   title: string;
   message: string;
-  type: 'info' | 'warning' | 'success' | 'error';
-  read: boolean;
+  recipientType: 'all' | 'members' | 'specific';
+  recipientId?: string;
   createdAt: string;
+  read?: boolean;
 }
 
-export interface AppState {
+export interface AppContextType {
+  currentUser: User | null;
+  login: (email: string, password: string) => Promise<boolean>;
+  logout: () => void;
+  register: (name: string, email: string, password: string) => Promise<boolean>;
   users: User[];
   slots: Slot[];
   bookings: Booking[];
   tournaments: Tournament[];
-  notifications: Notification[];
-  currentUser: User | null;
-}
-
-export interface AppContextType extends AppState {
-  login: (email: string, password: string) => User | null;
-  register: (name: string, email: string, password: string) => boolean;
-  logout: () => void;
-  addSlot: (slot: Omit<Slot, 'id'>) => void;
+  notifications: AppNotification[];
+  addSlot: (slot: Omit<Slot, 'id' | 'bookedCount'>) => void;
   updateSlot: (id: string, updates: Partial<Slot>) => void;
   deleteSlot: (id: string) => void;
-  addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => void;
+  addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Booking;
   cancelBooking: (id: string) => void;
-  addTournament: (tournament: Omit<Tournament, 'id' | 'createdAt'>) => void;
+  addTournament: (tournament: Omit<Tournament, 'id' | 'createdAt' | 'participants' | 'matches'>) => void;
   updateTournament: (id: string, updates: Partial<Tournament>) => void;
   deleteTournament: (id: string) => void;
-  addNotification: (notification: Omit<Notification, 'id' | 'createdAt'>) => void;
-  markNotificationRead: (id: string) => void;
+  addNotification: (notification: Omit<AppNotification, 'id' | 'createdAt'>) => void;
+  updateUser: (id: string, updates: Partial<User>) => void;
+  updateSubscription: (userId: string, status: 'active' | 'inactive', tier: 'none' | 'basic' | 'premium', expiry?: string) => void;
+  toggleUserStatus: (id: string) => void;
 }

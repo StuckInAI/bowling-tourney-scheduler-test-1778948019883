@@ -1,42 +1,39 @@
-import { loadState, saveState } from '@/lib/storage';
+import { loadData, saveData } from '@/lib/storage';
 import type { User, Slot, Tournament } from '@/types';
 
 export function seedInitialData() {
-  const state = loadState();
-  if (state.users.length > 0) return; // already seeded
+  const seeded = loadData<boolean>('seeded', false);
+  if (seeded) return;
 
+  // Seed admin user
   const users: User[] = [
     {
       id: 'admin-1',
       name: 'Admin User',
-      email: 'admin@bowl.com',
+      email: 'admin@bowlpro.com',
       password: 'admin123',
       role: 'admin',
       subscriptionTier: 'none',
+      subscriptionStatus: 'inactive',
       createdAt: new Date().toISOString(),
     },
     {
       id: 'member-1',
-      name: 'Jane Member',
-      email: 'member@bowl.com',
+      name: 'John Doe',
+      email: 'john@example.com',
       password: 'member123',
       role: 'member',
       subscriptionTier: 'basic',
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 'member-2',
-      name: 'Bob Smith',
-      email: 'bob@bowl.com',
-      password: 'bob123',
-      role: 'member',
-      subscriptionTier: 'premium',
+      subscriptionStatus: 'active',
+      subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
       createdAt: new Date().toISOString(),
     },
   ];
+  saveData('users', users);
 
-  const today = new Date();
+  // Seed slots for next 7 days
   const slots: Slot[] = [];
+  const today = new Date();
   for (let d = 0; d < 7; d++) {
     const date = new Date(today);
     date.setDate(today.getDate() + d);
@@ -45,70 +42,50 @@ export function seedInitialData() {
       const times = [
         { start: '09:00', end: '10:00' },
         { start: '10:00', end: '11:00' },
+        { start: '11:00', end: '12:00' },
+        { start: '13:00', end: '14:00' },
         { start: '14:00', end: '15:00' },
         { start: '15:00', end: '16:00' },
+        { start: '16:00', end: '17:00' },
+        { start: '18:00', end: '19:00' },
+        { start: '19:00', end: '20:00' },
+        { start: '20:00', end: '21:00' },
       ];
-      times.forEach(({ start, end }, i) => {
+      times.forEach((t, i) => {
         slots.push({
-          id: `slot-${d}-${lane}-${i}`,
+          id: `slot-${dateStr}-lane${lane}-${i}`,
           date: dateStr,
-          startTime: start,
-          endTime: end,
+          startTime: t.start,
+          endTime: t.end,
           lane,
           capacity: 6,
           bookedCount: 0,
           status: 'available',
-          price: 20,
+          price: lane <= 2 ? 15 : 20,
         });
       });
     }
   }
+  saveData('slots', slots);
 
+  // Seed a tournament
   const tournaments: Tournament[] = [
     {
-      id: 'tourney-1',
-      name: 'Summer Strike Championship',
-      description: 'Annual summer bowling tournament',
-      startDate: '2025-07-01',
-      endDate: '2025-07-15',
-      status: 'upcoming',
+      id: 'tournament-1',
+      name: 'Summer Bowl Championship',
+      description: 'Annual summer bowling championship for all skill levels.',
+      date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      startTime: '10:00',
+      endTime: '18:00',
       maxParticipants: 16,
       entryFee: 25,
-      prizePool: 500,
-      format: 'single-elimination',
-      participants: [
-        {
-          userId: 'member-1',
-          userName: 'Jane Member',
-          userEmail: 'member@bowl.com',
-          status: 'registered',
-          joinedAt: new Date().toISOString(),
-        },
-      ],
-      matches: [],
-      createdAt: new Date().toISOString(),
-    },
-    {
-      id: 'tourney-2',
-      name: 'Weekend Warriors Cup',
-      description: 'Casual weekend tournament for all skill levels',
-      startDate: '2025-08-10',
-      endDate: '2025-08-10',
-      status: 'draft',
-      maxParticipants: 8,
-      entryFee: 10,
-      prizePool: 100,
-      format: 'round-robin',
+      prize: '$500 Cash Prize',
+      status: 'upcoming',
       participants: [],
       matches: [],
       createdAt: new Date().toISOString(),
     },
   ];
-
-  saveState({
-    ...state,
-    users,
-    slots,
-    tournaments,
-  });
+  saveData('tournaments', tournaments);
+  saveData('seeded', true);
 }
