@@ -1,47 +1,47 @@
 import { useAppContext } from '@/context/AppContext';
 import Card from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
 import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
 import { formatDate } from '@/lib/utils';
 
 export default function MemberTournaments() {
-  const { tournaments, currentUser } = useAppContext();
-
-  const statusVariant = (status: string) => {
-    if (status === 'upcoming') return 'info';
-    if (status === 'ongoing') return 'success';
-    return 'neutral';
-  };
+  const { tournaments, currentUser, registerForTournament } = useAppContext();
+  if (!currentUser) return null;
 
   return (
     <div>
-      <h2 style={{ marginBottom: '1.5rem' }}>Tournaments</h2>
-      {tournaments.length === 0 && <p>No tournaments available.</p>}
+      <h1 style={{ marginBottom: '1.5rem' }}>Tournaments</h1>
       <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        {tournaments.map((t) => (
+        {tournaments.map(t => (
           <Card key={t.id}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '1rem' }}>
               <div>
-                <h3 style={{ marginBottom: '0.25rem' }}>{t.name}</h3>
-                <Badge variant={statusVariant(t.status)}>{t.status}</Badge>
+                <h3 style={{ marginBottom: '0.5rem' }}>{t.name}</h3>
+                <p style={{ color: 'var(--color-gray-600)', fontSize: '0.875rem', marginBottom: '0.5rem' }}>{t.description}</p>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '0.25rem', fontSize: '0.875rem' }}>
+                  <div>📅 {formatDate(new Date(t.startDate))} – {formatDate(new Date(t.endDate))}</div>
+                  <div>👥 {t.currentParticipants} / {t.maxParticipants} participants</div>
+                  {t.entryFee !== undefined && t.entryFee > 0 && <div>💰 Entry fee: ${t.entryFee}</div>}
+                  <div>🏆 Prize: {t.prize}</div>
+                </div>
               </div>
-              <div style={{ fontSize: '0.85rem', color: '#64748b', display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                <div>📅 {formatDate(new Date(t.startDate))} – {formatDate(new Date(t.endDate))}</div>
-                <div>👥 {t.currentParticipants} / {t.maxParticipants} participants</div>
-                {t.entryFee !== undefined && t.entryFee > 0 && <div>💰 Entry fee: ${t.entryFee}</div>}
-                <div>🏆 Prize: {t.prize}</div>
-              </div>
-            </div>
-            {t.description && <p style={{ marginTop: '0.75rem', fontSize: '0.875rem', color: '#475569' }}>{t.description}</p>}
-            {t.status === 'upcoming' && currentUser && (
-              <div style={{ marginTop: '1rem' }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', alignItems: 'flex-end' }}>
+                <Badge variant={t.status === 'upcoming' ? 'info' : t.status === 'ongoing' ? 'success' : 'neutral'}>
+                  {t.status}
+                </Badge>
                 {t.registeredUserIds.includes(currentUser.id) ? (
                   <Badge variant="success">Registered</Badge>
                 ) : (
-                  <Button size="sm" onClick={() => {/* register logic */}}>Register</Button>
+                  <Button
+                    size="sm"
+                    disabled={t.status !== 'upcoming' || t.currentParticipants >= t.maxParticipants}
+                    onClick={() => registerForTournament(t.id, currentUser.id)}
+                  >
+                    Register
+                  </Button>
                 )}
               </div>
-            )}
+            </div>
           </Card>
         ))}
       </div>

@@ -1,8 +1,7 @@
 export type UserRole = 'member' | 'admin';
-export type SubscriptionType = 'none' | 'monthly' | 'annual';
-export type TournamentStatus = 'upcoming' | 'active' | 'completed';
+export type SubscriptionType = 'none' | 'basic' | 'premium' | 'vip';
 export type SlotStatus = 'available' | 'booked_member' | 'booked_outsider' | 'tournament' | 'blocked';
-export type BookingStatus = 'confirmed' | 'cancelled';
+export type BookingStatus = 'confirmed' | 'cancelled' | 'completed';
 
 export interface User {
   id: string;
@@ -11,60 +10,58 @@ export interface User {
   password: string;
   role: UserRole;
   subscription: SubscriptionType;
-  subscriptionExpiry?: string;
+  subscriptionTier: SubscriptionType;
+  joinedAt: string;
   phone?: string;
-  address?: string;
-  createdAt: string;
 }
 
 export interface Slot {
   id: string;
   date: string;
-  startTime: string;
-  endTime: string;
-  lane: number;
+  time: string;
+  laneNumber: number;
   status: SlotStatus;
   bookedBy?: string;
-  type: string;
-  createdAt: string;
+  bookedByName?: string;
+  bookingType?: 'member' | 'outsider';
+  tournamentId?: string;
+  price: number;
+  duration: number;
 }
 
 export interface Booking {
   id: string;
-  slotId: string;
   userId: string;
-  userName: string;
-  userEmail: string;
-  userType: 'member' | 'outsider';
-  lane: number;
+  slotId: string;
   date: string;
-  startTime: string;
-  endTime: string;
   time: string;
+  laneNumber: number;
   status: BookingStatus;
-  type: string;
-  confirmationCode: string;
   createdAt: string;
+  price: number;
 }
 
 export interface Tournament {
   id: string;
   name: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  status: TournamentStatus;
-  registrationOpen: boolean;
-  maxParticipants: number;
-  registeredParticipants: string[];
   description: string;
-  createdAt: string;
+  date: string;
+  startDate: string;
+  endDate: string;
+  maxParticipants: number;
+  currentParticipants: number;
+  registeredUserIds: string[];
+  status: 'upcoming' | 'ongoing' | 'completed';
+  prize?: string;
+  entryFee?: number;
+  requiredSubscription?: SubscriptionType;
 }
 
 export interface Notification {
   id: string;
   title: string;
   message: string;
-  targetRole: 'all' | UserRole;
+  targetRole: UserRole | 'all';
   createdAt: string;
+  read?: boolean;
 }

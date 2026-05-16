@@ -1,60 +1,41 @@
 import { useAppContext } from '@/context/AppContext';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
+import Card from '@/components/ui/Card';
+import type { SubscriptionType } from '@/types';
 
-const plans = [
-  {
-    tier: 'basic' as const,
-    name: 'Basic',
-    price: '$9.99/mo',
-    features: ['5 bookings/month', 'Standard lanes', 'Email support'],
-    badge: 'neutral' as const,
-  },
-  {
-    tier: 'premium' as const,
-    name: 'Premium',
-    price: '$19.99/mo',
-    features: ['15 bookings/month', 'Priority lanes', 'Tournament access', 'Phone support'],
-    badge: 'info' as const,
-  },
-  {
-    tier: 'vip' as const,
-    name: 'VIP',
-    price: '$39.99/mo',
-    features: ['Unlimited bookings', 'VIP lanes', 'All tournaments', '24/7 support', 'Guest passes'],
-    badge: 'purple' as const,
-  },
+const plans: { tier: SubscriptionType; name: string; price: number; features: string[] }[] = [
+  { tier: 'basic', name: 'Basic', price: 9.99, features: ['5 bookings/month', 'Standard lanes', 'Email support'] },
+  { tier: 'premium', name: 'Premium', price: 19.99, features: ['15 bookings/month', 'Priority lanes', 'Tournament access', 'Phone support'] },
+  { tier: 'vip', name: 'VIP', price: 39.99, features: ['Unlimited bookings', 'VIP lanes', 'All tournaments', 'Dedicated support', 'Guest passes'] },
 ];
 
 export default function MemberSubscription() {
   const { currentUser, updateUser } = useAppContext();
-
   if (!currentUser) return null;
 
-  const handleUpgrade = (tier: 'basic' | 'premium' | 'vip') => {
+  const handleUpgrade = (tier: SubscriptionType) => {
     updateUser({ ...currentUser, subscription: tier, subscriptionTier: tier });
   };
 
   return (
     <div>
-      <h2 style={{ marginBottom: '1.5rem' }}>Subscription Plans</h2>
+      <h1 style={{ marginBottom: '1.5rem' }}>Subscription Plans</h1>
+      <p style={{ marginBottom: '2rem', color: 'var(--color-gray-600)' }}>
+        Current plan: <strong>{currentUser.subscription === 'none' ? 'No subscription' : currentUser.subscription}</strong>
+      </p>
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
-        {plans.map((plan) => (
+        {plans.map(plan => (
           <Card key={plan.tier}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <h3>{plan.name}</h3>
-              <Badge variant={plan.badge}>{plan.name}</Badge>
-            </div>
-            <div style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem' }}>{plan.price}</div>
-            <ul style={{ paddingLeft: '1.2rem', marginBottom: '1.5rem' }}>
-              {plan.features.map((f) => <li key={f} style={{ fontSize: '0.875rem', marginBottom: '4px' }}>{f}</li>)}
+            <h2 style={{ marginBottom: '0.5rem' }}>{plan.name}</h2>
+            <p style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem' }}>${plan.price}<span style={{ fontSize: '0.875rem', fontWeight: 400 }}>/mo</span></p>
+            <ul style={{ marginBottom: '1.5rem', paddingLeft: '1.25rem' }}>
+              {plan.features.map(f => <li key={f} style={{ marginBottom: '0.25rem', fontSize: '0.875rem' }}>{f}</li>)}
             </ul>
             <Button
               variant={currentUser.subscription === plan.tier ? 'secondary' : 'primary'}
               disabled={currentUser.subscription === plan.tier}
-              fullWidth
               onClick={() => handleUpgrade(plan.tier)}
+              fullWidth
             >
               {currentUser.subscription === plan.tier ? 'Current Plan' : 'Upgrade'}
             </Button>

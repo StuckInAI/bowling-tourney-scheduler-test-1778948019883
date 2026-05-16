@@ -1,1 +1,1 @@
-export type BadgeVariant = 'success' | 'warning' | 'danger' | 'info' | 'neutral' | 'purple';
+export { SlotGrid as default } from './SlotGrid';

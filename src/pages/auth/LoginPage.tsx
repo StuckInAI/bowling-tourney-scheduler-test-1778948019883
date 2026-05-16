@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAppContext } from '@/context/AppContext';
-import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Input from '@/components/ui/Input';
 
@@ -19,31 +18,24 @@ export default function LoginPage() {
       if (user.role === 'admin') navigate('/admin/overview');
       else navigate('/member/dashboard');
     } else {
-      setError('Invalid email or password.');
+      setError('Invalid email or password');
     }
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f8fafc', padding: '2rem' }}>
-      <Card padding="lg">
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ fontSize: '2.5rem', marginBottom: '0.5rem' }}>🎳</div>
-          <h1 style={{ fontWeight: 800, fontSize: '1.5rem', color: '#1e3a5f' }}>Welcome Back</h1>
-          <p style={{ color: '#64748b', marginTop: '0.25rem' }}>Sign in to your BowlPro account</p>
-        </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem', minWidth: 320 }}>
-          <Input label="Email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-          <Input label="Password" type="password" value={password} onChange={(e) => setPassword(e.target.value)} required />
-          {error && <p style={{ color: '#b91c1c', fontSize: '0.875rem' }}>{error}</p>}
-          <Button type="submit" fullWidth>Sign In</Button>
+    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--color-gray-50)', padding: '1rem' }}>
+      <div style={{ background: 'white', borderRadius: 'var(--radius-xl)', padding: '2rem', width: '100%', maxWidth: '400px', boxShadow: 'var(--shadow-lg)' }}>
+        <h1 style={{ textAlign: 'center', marginBottom: '1.5rem', fontSize: '1.5rem' }}>🎳 BowlPro Login</h1>
+        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
+          <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} required />
+          {error && <p style={{ color: 'var(--color-danger)', fontSize: '0.875rem' }}>{error}</p>}
+          <Button type="submit" fullWidth>Login</Button>
         </form>
-        <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.875rem', color: '#64748b' }}>
-          Don't have an account? <Link to="/register" style={{ color: '#1e3a5f', fontWeight: 600 }}>Register</Link>
+        <p style={{ textAlign: 'center', marginTop: '1rem', fontSize: '0.875rem' }}>
+          No account? <Link to="/register">Register</Link>
         </p>
-        <div style={{ marginTop: '1rem', padding: '0.75rem', background: '#f1f5f9', borderRadius: '8px', fontSize: '0.8rem', color: '#64748b' }}>
-          <strong>Demo:</strong> admin@bowlpro.com / admin123 · john@example.com / member123
-        </div>
-      </Card>
+      </div>
     </div>
   );
 }

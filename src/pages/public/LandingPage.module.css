@@ -1,6 +1,6 @@
 .hero {
   min-height: 100vh;
-  background: linear-gradient(135deg, #1e3a5f 0%, #2d5a8e 50%, #1e3a5f 100%);
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 60%, #0a1628 100%);
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -16,17 +16,18 @@
 }
 
 .title {
-  font-size: 3rem;
+  font-size: clamp(2rem, 5vw, 3.5rem);
   font-weight: 800;
-  margin: 0 0 1rem;
-  line-height: 1.1;
+  margin-bottom: 1rem;
+  line-height: 1.15;
 }
 
 .subtitle {
-  font-size: 1.25rem;
+  font-size: clamp(1rem, 2vw, 1.25rem);
   color: rgba(255,255,255,0.8);
-  margin: 0 0 2.5rem;
-  max-width: 500px;
+  max-width: 600px;
+  margin-bottom: 2.5rem;
+  line-height: 1.6;
 }
 
 .actions {
@@ -36,60 +37,25 @@
   justify-content: center;
 }
 
-.btnPrimary {
-  background: #f59e0b;
-  color: #1e3a5f;
-  padding: 0.875rem 2rem;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 1rem;
-  text-decoration: none;
-  transition: background 0.2s;
-  border: none;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btnPrimary:hover {
-  background: #fbbf24;
-}
-
-.btnSecondary {
-  background: rgba(255,255,255,0.15);
-  color: white;
-  padding: 0.875rem 2rem;
-  border-radius: 8px;
-  font-weight: 700;
-  font-size: 1rem;
-  text-decoration: none;
-  transition: background 0.2s;
-  border: 1px solid rgba(255,255,255,0.3);
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-.btnSecondary:hover {
-  background: rgba(255,255,255,0.25);
-}
-
 .features {
+  padding: 4rem 2rem;
+  background: var(--color-gray-50);
+}
+
+.featuresGrid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 1.5rem;
-  margin-top: 4rem;
-  width: 100%;
-  max-width: 800px;
+  max-width: 900px;
+  margin: 0 auto;
 }
 
-.feature {
-  background: rgba(255,255,255,0.1);
-  border-radius: 12px;
+.featureCard {
+  background: white;
+  border-radius: var(--radius-lg);
   padding: 1.5rem;
   text-align: center;
+  box-shadow: var(--shadow-sm);
 }
 
 .featureIcon {
@@ -100,10 +66,19 @@
 .featureTitle {
   font-weight: 700;
   margin-bottom: 0.5rem;
-  font-size: 1.05rem;
+  color: var(--color-gray-800);
 }
 
 .featureDesc {
   font-size: 0.875rem;
-  color: rgba(255,255,255,0.75);
+  color: var(--color-gray-600);
+  line-height: 1.5;
+}
+
+.sectionTitle {
+  text-align: center;
+  font-size: 1.75rem;
+  font-weight: 700;
+  margin-bottom: 2rem;
+  color: var(--color-gray-900);
 }
