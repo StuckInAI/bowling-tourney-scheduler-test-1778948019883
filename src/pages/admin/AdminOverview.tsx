@@ -1,85 +1,51 @@
 import { useAppContext } from '@/context/AppContext';
 import Card from '@/components/ui/Card';
-import Badge from '@/components/ui/Badge';
-import { formatDate, formatTime } from '@/lib/utils';
+import StatCard from '@/components/ui/StatCard';
+import { formatDate } from '@/lib/utils';
 
 export default function AdminOverview() {
-  const { users, slots, bookings, tournaments } = useAppContext();
+  const { users, bookings, tournaments, slots } = useAppContext();
 
-  const members = users.filter(u => u.role === 'member');
-  const todayStr = new Date().toISOString().split('T')[0];
-  const todayBookings = bookings.filter(b => b.date === todayStr && b.status !== 'cancelled');
-  const availableSlots = slots.filter(s => s.status === 'available' && s.date === todayStr);
-  const upcomingTournaments = tournaments.filter(t => t.status === 'upcoming');
+  const members = users.filter((u) => u.role === 'member');
+  const confirmedBookings = bookings.filter((b) => b.status === 'confirmed');
+  const availableSlots = slots.filter((s) => s.status === 'available');
+  const openTournaments = tournaments.filter((t) => t.status === 'open');
+
+  const recentBookings = [...bookings]
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 5);
 
   return (
-    <div>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Admin Overview</h1>
-        <p style={{ color: 'var(--color-gray-500)', marginTop: '0.25rem' }}>Bowling center at a glance.</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Dashboard Overview</h1>
+
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '1rem' }}>
+        <StatCard title="Total Members" value={members.length} icon="👥" color="blue" />
+        <StatCard title="Confirmed Bookings" value={confirmedBookings.length} icon="📋" color="green" />
+        <StatCard title="Available Slots" value={availableSlots.length} icon="🎳" color="purple" />
+        <StatCard title="Open Tournaments" value={openTournaments.length} icon="🏆" color="orange" />
       </div>
 
-      {/* Stats */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(140px, 1fr))', gap: '1rem', marginBottom: '1.5rem' }}>
-        <Card>
-          <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-primary)' }}>{members.length}</div>
-          <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-500)' }}>Total Members</div>
-        </Card>
-        <Card>
-          <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-primary)' }}>{todayBookings.length}</div>
-          <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-500)' }}>Today's Bookings</div>
-        </Card>
-        <Card>
-          <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-primary)' }}>{availableSlots.length}</div>
-          <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-500)' }}>Available Slots</div>
-        </Card>
-        <Card>
-          <div style={{ fontSize: '2rem', fontWeight: 700, color: 'var(--color-primary)' }}>{upcomingTournaments.length}</div>
-          <div style={{ fontSize: '0.875rem', color: 'var(--color-gray-500)' }}>Upcoming Tournaments</div>
-        </Card>
-      </div>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-        {/* Recent Bookings */}
-        <Card>
-          <h2 style={{ fontWeight: 700, marginBottom: '1rem' }}>Recent Bookings</h2>
-          {bookings.length === 0 ? (
-            <p style={{ color: 'var(--color-gray-400)', textAlign: 'center', padding: '1.5rem 0' }}>No bookings yet.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {[...bookings].sort((a, b) => b.createdAt.localeCompare(a.createdAt)).slice(0, 5).map(b => (
-                <div key={b.id} style={{ padding: '0.75rem', background: 'var(--color-gray-50)', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{b.userName}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--color-gray-500)' }}>Lane {b.laneNumber} · {formatDate(b.date)} {formatTime(b.startTime)}</div>
-                  </div>
-                  <Badge variant={b.status === 'confirmed' ? 'success' : b.status === 'cancelled' ? 'danger' : 'neutral'}>{b.status}</Badge>
+      <Card>
+        <h2 style={{ fontWeight: 700, marginBottom: '1rem' }}>Recent Bookings</h2>
+        {recentBookings.length === 0 ? (
+          <p style={{ color: '#64748b' }}>No bookings yet.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+            {recentBookings.map((b) => (
+              <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <div style={{ fontWeight: 600 }}>{b.userName}</div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Lane {b.lane} · {formatDate(new Date(b.date))}</div>
                 </div>
-              ))}
-            </div>
-          )}
-        </Card>
-
-        {/* Tournaments */}
-        <Card>
-          <h2 style={{ fontWeight: 700, marginBottom: '1rem' }}>Tournaments</h2>
-          {tournaments.length === 0 ? (
-            <p style={{ color: 'var(--color-gray-400)', textAlign: 'center', padding: '1.5rem 0' }}>No tournaments.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-              {tournaments.slice(0, 4).map(t => (
-                <div key={t.id} style={{ padding: '0.75rem', background: 'var(--color-gray-50)', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <div>
-                    <div style={{ fontWeight: 600, fontSize: '0.9rem' }}>{t.name}</div>
-                    <div style={{ fontSize: '0.78rem', color: 'var(--color-gray-500)' }}>{formatDate(t.date)} · {t.registeredParticipants.length}/{t.maxParticipants}</div>
-                  </div>
-                  <Badge variant={t.status === 'upcoming' ? 'info' : t.status === 'ongoing' ? 'success' : 'neutral'}>{t.status}</Badge>
-                </div>
-              ))}
-            </div>
-          )}
-        </Card>
-      </div>
+                <span style={{ fontSize: '0.8rem', padding: '2px 8px', borderRadius: '999px', background: b.status === 'confirmed' ? '#dcfce7' : '#fee2e2', color: b.status === 'confirmed' ? '#15803d' : '#b91c1c' }}>
+                  {b.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

@@ -1,343 +1,163 @@
-import { setItem, getItem } from '@/lib/storage';
-import type {
-  User,
-  Lane,
-  Slot,
-  Booking,
-  Tournament,
-  TournamentParticipant,
-  TournamentMatch,
-  Notification,
-  Subscription,
-} from '@/types';
-import { generateId, generateConfirmationCode, addHours, formatDate } from '@/lib/utils';
+import type { AppState, User, Slot, Tournament, Notification } from '@/types';
+import { loadState, saveState } from '@/lib/storage';
 
-export function seedInitialData(): void {
-  if (getItem<boolean>('seeded')) return;
+const SEED_KEY = 'bowling_seeded_v2';
 
-  // Lanes
-  const lanes: Lane[] = Array.from({ length: 16 }, (_, i) => ({
-    id: `lane-${i + 1}`,
-    number: i + 1,
-    name: `Lane ${i + 1}`,
-  }));
-  setItem('lanes', lanes);
+export function seedInitialData() {
+  if (localStorage.getItem(SEED_KEY)) return;
 
-  // Admin user
-  const adminUser: User = {
-    id: 'admin-001',
-    name: 'Admin',
-    email: 'admin@bowlpro.com',
-    password: 'admin123',
-    role: 'admin',
-    phone: '555-0100',
-    createdAt: new Date().toISOString(),
-  };
+  const existing = loadState();
+  if (existing && existing.users.length > 0) {
+    localStorage.setItem(SEED_KEY, 'true');
+    return;
+  }
 
-  // Member users
-  const now = new Date();
-  const subEnd = new Date(now);
-  subEnd.setFullYear(subEnd.getFullYear() + 1);
-
-  const members: User[] = [
+  const users: User[] = [
     {
-      id: 'member-001',
-      name: 'Alice Johnson',
-      email: 'alice@example.com',
-      password: 'password123',
-      role: 'member',
-      phone: '555-0101',
+      id: 'admin-1',
+      name: 'Admin User',
+      email: 'admin@bowlpro.com',
+      password: 'admin123',
+      role: 'admin',
       createdAt: new Date().toISOString(),
-      subscription: {
-        id: 'sub-001',
-        userId: 'member-001',
-        status: 'active',
-        startDate: now.toISOString(),
-        endDate: subEnd.toISOString(),
-        plan: 'yearly',
-        amount: 299,
-      },
     },
     {
-      id: 'member-002',
-      name: 'Bob Smith',
+      id: 'member-1',
+      name: 'John Doe',
+      email: 'john@example.com',
+      password: 'member123',
+      role: 'member',
+      subscriptionTier: 'premium',
+      subscriptionStatus: 'active',
+      subscriptionExpiry: new Date(Date.now() + 60 * 24 * 60 * 60 * 1000).toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'member-2',
+      name: 'Jane Smith',
+      email: 'jane@example.com',
+      password: 'member123',
+      role: 'member',
+      subscriptionTier: 'basic',
+      subscriptionStatus: 'active',
+      subscriptionExpiry: new Date(Date.now() + 15 * 24 * 60 * 60 * 1000).toISOString(),
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'member-3',
+      name: 'Bob Wilson',
       email: 'bob@example.com',
-      password: 'password123',
+      password: 'member123',
       role: 'member',
-      phone: '555-0102',
+      subscriptionTier: 'vip',
+      subscriptionStatus: 'active',
+      subscriptionExpiry: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
       createdAt: new Date().toISOString(),
-      subscription: {
-        id: 'sub-002',
-        userId: 'member-002',
-        status: 'active',
-        startDate: now.toISOString(),
-        endDate: subEnd.toISOString(),
-        plan: 'yearly',
-        amount: 299,
-      },
-    },
-    {
-      id: 'member-003',
-      name: 'Carol Davis',
-      email: 'carol@example.com',
-      password: 'password123',
-      role: 'member',
-      phone: '555-0103',
-      createdAt: new Date().toISOString(),
-      subscription: {
-        id: 'sub-003',
-        userId: 'member-003',
-        status: 'active',
-        startDate: now.toISOString(),
-        endDate: subEnd.toISOString(),
-        plan: 'yearly',
-        amount: 299,
-      },
-    },
-    {
-      id: 'member-004',
-      name: 'Dan Wilson',
-      email: 'dan@example.com',
-      password: 'password123',
-      role: 'member',
-      phone: '555-0104',
-      createdAt: new Date().toISOString(),
-      subscription: {
-        id: 'sub-004',
-        userId: 'member-004',
-        status: 'expired',
-        startDate: new Date(now.getTime() - 400 * 86400000).toISOString(),
-        endDate: new Date(now.getTime() - 35 * 86400000).toISOString(),
-        plan: 'yearly',
-        amount: 299,
-      },
-    },
-    {
-      id: 'member-005',
-      name: 'Eva Martinez',
-      email: 'eva@example.com',
-      password: 'password123',
-      role: 'member',
-      phone: '555-0105',
-      createdAt: new Date().toISOString(),
-      subscription: {
-        id: 'sub-005',
-        userId: 'member-005',
-        status: 'active',
-        startDate: now.toISOString(),
-        endDate: subEnd.toISOString(),
-        plan: 'yearly',
-        amount: 299,
-      },
-    },
-    {
-      id: 'member-006',
-      name: 'Frank Lee',
-      email: 'frank@example.com',
-      password: 'password123',
-      role: 'member',
-      phone: '555-0106',
-      createdAt: new Date().toISOString(),
-      subscription: {
-        id: 'sub-006',
-        userId: 'member-006',
-        status: 'active',
-        startDate: now.toISOString(),
-        endDate: subEnd.toISOString(),
-        plan: 'yearly',
-        amount: 299,
-      },
     },
   ];
 
-  const users: User[] = [adminUser, ...members];
-  setItem('users', users);
-
-  // Generate slots for today + next 7 days
-  const slots: Slot[] = [];
   const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const slots: Slot[] = [];
 
   for (let d = 0; d < 7; d++) {
     const date = new Date(today);
-    date.setDate(date.getDate() + d);
-    const dateStr = formatDate(date);
+    date.setDate(today.getDate() + d);
+    const dateStr = date.toISOString().split('T')[0];
 
-    for (let lane = 1; lane <= 16; lane++) {
-      for (let hour = 9; hour < 22; hour++) {
-        const slotId = generateId();
-        const startH = hour.toString().padStart(2, '0');
-        const endH = (hour + 1).toString().padStart(2, '0');
+    for (let lane = 1; lane <= 8; lane++) {
+      const times = [
+        { start: '09:00', end: '10:00' },
+        { start: '10:00', end: '11:00' },
+        { start: '11:00', end: '12:00' },
+        { start: '13:00', end: '14:00' },
+        { start: '14:00', end: '15:00' },
+        { start: '15:00', end: '16:00' },
+        { start: '16:00', end: '17:00' },
+        { start: '18:00', end: '19:00' },
+        { start: '19:00', end: '20:00' },
+        { start: '20:00', end: '21:00' },
+      ];
+
+      times.forEach(({ start, end }) => {
         slots.push({
-          id: slotId,
-          laneId: `lane-${lane}`,
+          id: `slot-${dateStr}-lane${lane}-${start}`,
           date: dateStr,
-          startTime: `${startH}:00`,
-          endTime: `${endH}:00`,
+          startTime: start,
+          endTime: end,
+          lane,
           status: 'available',
         });
-      }
+      });
     }
   }
 
-  // Seed some bookings
-  const bookings: Booking[] = [];
-
-  // Member booking - today lane 1, 10am
-  const todayStr = formatDate(today);
-  const memberSlot = slots.find(
-    (s) => s.date === todayStr && s.laneId === 'lane-1' && s.startTime === '10:00'
-  );
-  if (memberSlot) {
-    memberSlot.status = 'booked_member';
-    bookings.push({
-      id: generateId(),
-      slotId: memberSlot.id,
-      type: 'member',
-      userId: 'member-001',
-      confirmationCode: generateConfirmationCode(),
-      status: 'confirmed',
-      createdAt: new Date().toISOString(),
-    });
-  }
-
-  // Outsider booking - today lane 3, 2pm
-  const outsiderSlot = slots.find(
-    (s) => s.date === todayStr && s.laneId === 'lane-3' && s.startTime === '14:00'
-  );
-  if (outsiderSlot) {
-    outsiderSlot.status = 'booked_outsider';
-    bookings.push({
-      id: generateId(),
-      slotId: outsiderSlot.id,
-      type: 'outsider',
-      outsiderName: 'John Public',
-      outsiderEmail: 'john@public.com',
-      outsiderPhone: '555-9999',
-      confirmationCode: generateConfirmationCode(),
-      status: 'confirmed',
-      createdAt: new Date().toISOString(),
-    });
-  }
-
-  // Tournament slots - tomorrow lane 5-8, noon
-  const tomorrow = new Date(today);
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  const tomorrowStr = formatDate(tomorrow);
-  const tournamentSlots = slots.filter(
-    (s) =>
-      s.date === tomorrowStr &&
-      ['lane-5', 'lane-6', 'lane-7', 'lane-8'].includes(s.laneId) &&
-      s.startTime >= '12:00' &&
-      s.startTime <= '15:00'
-  );
-  tournamentSlots.forEach((s) => {
-    s.status = 'tournament';
-  });
-
-  setItem('slots', slots);
-  setItem('bookings', bookings);
-
-  // Tournaments
-  const tournament1: Tournament = {
-    id: 'tournament-001',
-    name: 'Spring Championship 2025',
-    format: 'single_elimination',
-    status: 'active',
-    startDate: tomorrowStr,
-    endDate: tomorrowStr,
-    description: 'Annual spring single elimination championship',
-    maxParticipants: 8,
-    laneIds: ['lane-5', 'lane-6', 'lane-7', 'lane-8'],
-    createdAt: new Date().toISOString(),
-  };
-
-  const tournament2: Tournament = {
-    id: 'tournament-002',
-    name: 'Members Round Robin',
-    format: 'round_robin',
-    status: 'draft',
-    startDate: formatDate(addHours(today, 7 * 24)),
-    endDate: formatDate(addHours(today, 8 * 24)),
-    description: 'Round robin for all active members',
-    maxParticipants: 6,
-    laneIds: ['lane-9', 'lane-10'],
-    createdAt: new Date().toISOString(),
-  };
-
-  setItem('tournaments', [tournament1, tournament2]);
-
-  // Tournament participants
-  const participants: TournamentParticipant[] = [
-    { id: generateId(), tournamentId: 'tournament-001', userId: 'member-001', inviteStatus: 'accepted', invitedAt: new Date().toISOString() },
-    { id: generateId(), tournamentId: 'tournament-001', userId: 'member-002', inviteStatus: 'accepted', invitedAt: new Date().toISOString() },
-    { id: generateId(), tournamentId: 'tournament-001', userId: 'member-003', inviteStatus: 'pending', invitedAt: new Date().toISOString() },
-    { id: generateId(), tournamentId: 'tournament-001', userId: 'member-005', inviteStatus: 'declined', invitedAt: new Date().toISOString(), respondedAt: new Date().toISOString() },
-    { id: generateId(), tournamentId: 'tournament-001', userId: 'member-006', inviteStatus: 'accepted', invitedAt: new Date().toISOString() },
-    { id: generateId(), tournamentId: 'tournament-002', userId: 'member-001', inviteStatus: 'pending', invitedAt: new Date().toISOString() },
-    { id: generateId(), tournamentId: 'tournament-002', userId: 'member-002', inviteStatus: 'pending', invitedAt: new Date().toISOString() },
-  ];
-  setItem('tournament_participants', participants);
-
-  // Tournament matches
-  const matches: TournamentMatch[] = [
+  const tournaments: Tournament[] = [
     {
-      id: generateId(),
-      tournamentId: 'tournament-001',
-      round: 1,
-      matchNumber: 1,
-      participant1Id: 'member-001',
-      participant2Id: 'member-002',
-      status: 'scheduled',
+      id: 'tournament-1',
+      name: 'Summer Championship 2025',
+      description: 'Annual summer bowling championship. Top prizes for top scorers!',
+      startDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      endDate: new Date(Date.now() + 16 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      status: 'open',
+      maxParticipants: 32,
+      participants: ['member-1', 'member-3'],
+      prize: '$500 + Trophy',
+      entryFee: 25,
+      createdAt: new Date().toISOString(),
     },
     {
-      id: generateId(),
-      tournamentId: 'tournament-001',
-      round: 1,
-      matchNumber: 2,
-      participant1Id: 'member-006',
-      participant2Id: undefined,
-      status: 'bye',
+      id: 'tournament-2',
+      name: 'Beginner Friendly Cup',
+      description: 'Perfect for new bowlers! Fun and competitive.',
+      startDate: new Date(Date.now() + 21 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      endDate: new Date(Date.now() + 22 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      status: 'open',
+      maxParticipants: 16,
+      participants: [],
+      prize: 'Medals + Vouchers',
+      entryFee: 0,
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'tournament-3',
+      name: 'Pro League Spring 2025',
+      description: 'Professional league tournament. Registration closed.',
+      startDate: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      endDate: new Date(Date.now() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      status: 'closed',
+      maxParticipants: 24,
+      participants: ['member-1', 'member-2', 'member-3'],
+      prize: '$1000 + Championship Belt',
+      entryFee: 50,
+      createdAt: new Date().toISOString(),
     },
   ];
-  setItem('tournament_matches', matches);
 
-  // Notifications
   const notifications: Notification[] = [
     {
-      id: generateId(),
-      type: 'booking_confirmation',
-      recipientEmail: 'alice@example.com',
-      subject: 'Booking Confirmed - Lane 1, 10:00 AM',
-      body: 'Your booking for Lane 1 on ' + todayStr + ' at 10:00 AM has been confirmed.',
-      sentAt: new Date().toISOString(),
-      status: 'sent',
+      id: 'notif-1',
+      title: 'Welcome to BowlPro!',
+      message: 'Welcome to our bowling reservation system. Book your lanes and join tournaments today!',
+      createdAt: new Date().toISOString(),
     },
     {
-      id: generateId(),
-      type: 'tournament_invite',
-      recipientEmail: 'alice@example.com',
-      subject: 'Tournament Invitation - Spring Championship 2025',
-      body: 'You have been invited to the Spring Championship 2025.',
-      sentAt: new Date().toISOString(),
-      status: 'sent',
-    },
-    {
-      id: generateId(),
-      type: 'outsider_booking',
-      recipientEmail: 'john@public.com',
-      subject: 'Booking Confirmed - Confirmation Code: BP-XY123',
-      body: 'Your booking for Lane 3 on ' + todayStr + ' at 2:00 PM is confirmed. Code: BP-XY123',
-      sentAt: new Date().toISOString(),
-      status: 'sent',
+      id: 'notif-2',
+      title: 'Summer Championship Registration Open',
+      message: 'Registration for the Summer Championship 2025 is now open. Limited spots available!',
+      targetRole: 'member',
+      createdAt: new Date().toISOString(),
     },
   ];
-  setItem('notifications', notifications);
 
-  setItem('seeded', true);
-}
+  const seedState: AppState = {
+    users,
+    slots,
+    bookings: [],
+    tournaments,
+    notifications,
+    currentUser: null,
+  };
 
-export function resetData(): void {
-  const keys = Object.keys(localStorage).filter((k) => k.startsWith('bowlpro_'));
-  keys.forEach((k) => localStorage.removeItem(k));
+  saveState(seedState);
+  localStorage.setItem(SEED_KEY, 'true');
 }

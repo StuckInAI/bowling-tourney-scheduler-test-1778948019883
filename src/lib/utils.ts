@@ -1,48 +1,17 @@
-export function generateId(): string {
-  return Math.random().toString(36).slice(2, 11) + Date.now().toString(36);
-}
-
-export function generateConfirmationCode(): string {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-  let code = 'BP-';
-  for (let i = 0; i < 6; i++) {
-    code += chars.charAt(Math.floor(Math.random() * chars.length));
-  }
-  return code;
-}
-
 export function formatDate(date: Date): string {
-  const y = date.getFullYear();
-  const m = String(date.getMonth() + 1).padStart(2, '0');
-  const d = String(date.getDate()).padStart(2, '0');
-  return `${y}-${m}-${d}`;
+  return date.toLocaleDateString('en-US', {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
-export function formatDisplayDate(dateStr: string): string {
-  const date = new Date(dateStr + 'T00:00:00');
-  return date.toLocaleDateString('en-US', { weekday: 'short', year: 'numeric', month: 'short', day: 'numeric' });
-}
-
-export function formatTime(timeStr: string): string {
-  const [h, m] = timeStr.split(':').map(Number);
-  const period = h >= 12 ? 'PM' : 'AM';
-  const hour12 = h % 12 === 0 ? 12 : h % 12;
-  return `${hour12}:${String(m).padStart(2, '0')} ${period}`;
-}
-
-export function addHours(date: Date, hours: number): Date {
-  return new Date(date.getTime() + hours * 3600000);
-}
-
-export function isWithin24Hours(dateStr: string, timeStr: string): boolean {
-  const slotDate = new Date(`${dateStr}T${timeStr}:00`);
-  const now = new Date();
-  const diff = slotDate.getTime() - now.getTime();
-  return diff > 0 && diff <= 24 * 3600000;
-}
-
-export function formatCurrency(amount: number): string {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' }).format(amount);
+export function formatTime(time: string): string {
+  const [hours, minutes] = time.split(':').map(Number);
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const displayHours = hours % 12 || 12;
+  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
 }
 
 export function getInitials(name: string): string {
@@ -54,8 +23,21 @@ export function getInitials(name: string): string {
     .slice(0, 2);
 }
 
-export function getDaysBetween(start: string, end: string): number {
-  const s = new Date(start);
-  const e = new Date(end);
-  return Math.round((e.getTime() - s.getTime()) / 86400000);
+export function generateId(): string {
+  return crypto.randomUUID();
+}
+
+export function generateConfirmationCode(): string {
+  return Math.random().toString(36).substring(2, 8).toUpperCase();
+}
+
+export function isDateInPast(dateStr: string): boolean {
+  const date = new Date(dateStr);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  return date < today;
+}
+
+export function getTodayString(): string {
+  return new Date().toISOString().split('T')[0];
 }

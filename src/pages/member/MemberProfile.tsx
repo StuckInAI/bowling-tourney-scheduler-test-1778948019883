@@ -1,59 +1,67 @@
 import { useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import Card from '@/components/ui/Card';
-import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
-import { getInitials } from '@/lib/utils';
+import Input from '@/components/ui/Input';
 
 export default function MemberProfile() {
   const { currentUser, updateUser } = useAppContext();
-  const [name, setName] = useState(currentUser?.name ?? '');
-  const [email, setEmail] = useState(currentUser?.email ?? '');
+  const [editing, setEditing] = useState(false);
+  const [form, setForm] = useState({ name: currentUser?.name || '', phone: currentUser?.phone || '', address: currentUser?.address || '' });
   const [saved, setSaved] = useState(false);
 
-  const handleSave = (e: React.FormEvent) => {
-    e.preventDefault();
+  const handleSave = () => {
     if (!currentUser) return;
-    updateUser(currentUser.id, { name, email });
+    updateUser(currentUser.id, { name: form.name, phone: form.phone, address: form.address });
+    setEditing(false);
     setSaved(true);
-    setTimeout(() => setSaved(false), 3000);
+    setTimeout(() => setSaved(false), 2000);
   };
 
   if (!currentUser) return null;
 
   return (
-    <div>
-      <div style={{ marginBottom: '1.5rem' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>My Profile</h1>
-        <p style={{ color: 'var(--color-gray-500)', marginTop: '0.25rem' }}>Manage your account information.</p>
-      </div>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem', maxWidth: 600 }}>
+      <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>My Profile</h1>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))', gap: '1.5rem' }}>
-        <Card>
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', padding: '1rem 0' }}>
-            <div style={{ width: 80, height: 80, borderRadius: '50%', background: 'var(--color-primary)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.75rem', fontWeight: 700, marginBottom: '1rem' }}>
-              {getInitials(currentUser.name)}
+      <Card>
+        {!editing ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <div>
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>NAME</div>
+              <div style={{ fontWeight: 600 }}>{currentUser.name}</div>
             </div>
-            <h2 style={{ fontWeight: 700, fontSize: '1.1rem' }}>{currentUser.name}</h2>
-            <p style={{ color: 'var(--color-gray-500)', fontSize: '0.875rem' }}>{currentUser.email}</p>
-            <p style={{ marginTop: '0.5rem', fontSize: '0.8rem', color: 'var(--color-gray-400)' }}>Member since {new Date(currentUser.createdAt).toLocaleDateString()}</p>
+            <div>
+              <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>EMAIL</div>
+              <div>{currentUser.email}</div>
+            </div>
+            {currentUser.phone && (
+              <div>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>PHONE</div>
+                <div>{currentUser.phone}</div>
+              </div>
+            )}
+            {currentUser.address && (
+              <div>
+                <div style={{ fontSize: '0.8rem', color: '#94a3b8', fontWeight: 600 }}>ADDRESS</div>
+                <div>{currentUser.address}</div>
+              </div>
+            )}
+            {saved && <div style={{ color: '#15803d', fontSize: '0.875rem' }}>✓ Profile updated!</div>}
+            <Button onClick={() => setEditing(true)} variant="secondary">Edit Profile</Button>
           </div>
-        </Card>
-
-        <Card>
-          <h2 style={{ fontWeight: 700, marginBottom: '1rem' }}>Edit Profile</h2>
-          {saved && (
-            <div style={{ padding: '0.75rem', background: '#dcfce7', border: '1px solid #86efac', borderRadius: 'var(--radius-md)', marginBottom: '1rem', color: '#15803d', fontSize: '0.875rem', fontWeight: 600 }}>
-              ✅ Profile saved successfully!
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+            <Input label="Name" value={form.name} onChange={(e) => setForm(p => ({ ...p, name: e.target.value }))} required />
+            <Input label="Phone" value={form.phone} onChange={(e) => setForm(p => ({ ...p, phone: e.target.value }))} />
+            <Input label="Address" value={form.address} onChange={(e) => setForm(p => ({ ...p, address: e.target.value }))} />
+            <div style={{ display: 'flex', gap: '0.75rem' }}>
+              <Button onClick={handleSave}>Save</Button>
+              <Button variant="secondary" onClick={() => setEditing(false)}>Cancel</Button>
             </div>
-          )}
-          <form onSubmit={handleSave} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <Input label="Full Name" value={name} onChange={e => setName(e.target.value)} required />
-            <Input label="Email" type="email" value={email} onChange={e => setEmail(e.target.value)} required />
-            <Button type="submit">Save Changes</Button>
-          </form>
-        </Card>
-      </div>
+          </div>
+        )}
+      </Card>
     </div>
   );
 }

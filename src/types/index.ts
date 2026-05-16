@@ -1,113 +1,86 @@
-export type UserRole = 'admin' | 'member';
+export type UserRole = 'member' | 'admin';
 
-export type SubscriptionStatus = 'active' | 'expired' | 'cancelled' | 'pending';
+export type SubscriptionTier = 'basic' | 'premium' | 'vip';
+
+export type SubscriptionStatus = 'active' | 'inactive' | 'expired';
+
+export type TournamentStatus = 'open' | 'closed' | 'completed';
+
+export type BookingStatus = 'confirmed' | 'cancelled' | 'pending';
 
 export type SlotStatus = 'available' | 'booked_member' | 'booked_outsider' | 'tournament' | 'blocked';
 
-export type TournamentFormat = 'single_elimination' | 'round_robin' | 'custom';
-
-export type TournamentStatus = 'draft' | 'active' | 'completed';
-
-export type InviteStatus = 'pending' | 'accepted' | 'declined';
-
-export type BookingType = 'member' | 'outsider';
-
-export interface User {
+export type User = {
   id: string;
   name: string;
   email: string;
   password: string;
   role: UserRole;
-  phone?: string;
+  subscriptionTier?: SubscriptionTier;
+  subscriptionStatus?: SubscriptionStatus;
+  subscriptionExpiry?: string;
   createdAt: string;
-  subscription?: Subscription;
-}
+  phone?: string;
+  address?: string;
+};
 
-export interface Subscription {
+export type Slot = {
   id: string;
-  userId: string;
-  status: SubscriptionStatus;
-  startDate: string;
-  endDate: string;
-  plan: 'yearly';
-  amount: number;
-}
-
-export interface Lane {
-  id: string;
-  number: number;
-  name: string;
-}
-
-export interface Slot {
-  id: string;
-  laneId: string;
   date: string;
   startTime: string;
   endTime: string;
+  lane: number;
   status: SlotStatus;
-}
+  bookedBy?: string;
+  notes?: string;
+};
 
-export interface Booking {
+export type Booking = {
   id: string;
   slotId: string;
-  type: BookingType;
-  userId?: string;
-  outsiderName?: string;
-  outsiderEmail?: string;
-  outsiderPhone?: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userType: 'member' | 'outsider';
+  lane: number;
+  date: string;
+  startTime: string;
+  endTime: string;
+  status: BookingStatus;
+  type: string;
   confirmationCode: string;
-  status: 'confirmed' | 'cancelled';
   createdAt: string;
-}
+};
 
-export interface Tournament {
+export type Tournament = {
   id: string;
   name: string;
-  format: TournamentFormat;
-  status: TournamentStatus;
+  description: string;
   startDate: string;
   endDate: string;
-  description?: string;
+  status: TournamentStatus;
   maxParticipants: number;
-  laneIds: string[];
+  participants: string[];
+  prize?: string;
+  entryFee?: number;
   createdAt: string;
-}
+};
 
-export interface TournamentParticipant {
+export type Notification = {
   id: string;
-  tournamentId: string;
-  userId: string;
-  inviteStatus: InviteStatus;
-  invitedAt: string;
-  respondedAt?: string;
-}
+  title: string;
+  message: string;
+  targetRole?: UserRole;
+  targetUserId?: string;
+  createdAt: string;
+  read?: boolean;
+};
 
-export interface TournamentMatch {
-  id: string;
-  tournamentId: string;
-  round: number;
-  matchNumber: number;
-  slotId?: string;
-  participant1Id?: string;
-  participant2Id?: string;
-  winnerId?: string;
-  score1?: number;
-  score2?: number;
-  status: 'scheduled' | 'completed' | 'bye';
-}
-
-export interface Notification {
-  id: string;
-  type: string;
-  recipientEmail: string;
-  subject: string;
-  body: string;
-  sentAt: string;
-  status: 'sent' | 'failed';
-}
-
-export interface AuthState {
-  user: User | null;
-  isAuthenticated: boolean;
-}
+export type AppState = {
+  users: User[];
+  slots: Slot[];
+  bookings: Booking[];
+  tournaments: Tournament[];
+  notifications: Notification[];
+  currentUser: User | null;
+};

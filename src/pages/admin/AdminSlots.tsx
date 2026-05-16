@@ -1,104 +1,97 @@
 import { useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
-import { formatDate } from '@/lib/utils';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
-import Modal from '@/components/ui/Modal';
-import Badge from '@/components/ui/Badge';
-import type { Slot } from '@/types';
-
-const STATUS_OPTIONS = [
-  { value: 'available', label: 'Available' },
-  { value: 'blocked', label: 'Blocked' },
-];
-
-const TIME_OPTIONS = Array.from({ length: 28 }, (_, i) => {
-  const h = Math.floor(i / 2) + 8;
-  const m = i % 2 === 0 ? '00' : '30';
-  const val = `${String(h).padStart(2, '0')}:${m}`;
-  return { value: val, label: val };
-});
+import { formatDate } from '@/lib/utils';
+import type { SlotStatus } from '@/types';
 
 export default function AdminSlots() {
   const { slots, addSlot, updateSlot, deleteSlot } = useAppContext();
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [showAdd, setShowAdd] = useState(false);
-  const [editSlot, setEditSlot] = useState<Slot | null>(null);
-  const [deleteId, setDeleteId] = useState<string | null>(null);
+  const [showModal, setShowModal] = useState(false);
+  const [filterDate, setFilterDate] = useState(new Date().toISOString().split('T')[0]);
+  const [form, setForm] = useState({
+    date: new Date().toISOString().split('T')[0],
+    startTime: '09:00',
+    endTime: '10:00',
+    lane: '1',
+    status: 'available' as SlotStatus,
+    notes: '',
+  });
 
-  const [form, setForm] = useState({ laneNumber: '', startTime: '09:00', endTime: '10:00', status: 'available' });
-
-  const daySlots = slots.filter(s => s.date === selectedDate).sort((a, b) => a.laneNumber - b.laneNumber || a.startTime.localeCompare(b.startTime));
-
-  const resetForm = () => setForm({ laneNumber: '', startTime: '09:00', endTime: '10:00', status: 'available' });
+  const filteredSlots = slots.filter((s) => s.date === filterDate);
 
   const handleAdd = () => {
-    const slot: Slot = {
+    if (!form.date || !form.startTime || !form.endTime) return;
+    addSlot({
       id: crypto.randomUUID(),
-      date: selectedDate,
-      laneNumber: parseInt(form.laneNumber),
+      date: form.date,
       startTime: form.startTime,
       endTime: form.endTime,
-      status: form.status as Slot['status'],
-      createdAt: new Date().toISOString(),
-    };
-    addSlot(slot);
-    setShowAdd(false);
-    resetForm();
+      lane: Number(form.lane),
+      status: form.status,
+      notes: form.notes,
+    });
+    setShowModal(false);
   };
 
-  const handleEdit = () => {
-    if (!editSlot) return;
-    updateSlot(editSlot.id, { laneNumber: parseInt(form.laneNumber), startTime: form.startTime, endTime: form.endTime, status: form.status as Slot['status'] });
-    setEditSlot(null);
-    resetForm();
-  };
-
-  const openEdit = (slot: Slot) => {
-    setEditSlot(slot);
-    setForm({ laneNumber: String(slot.laneNumber), startTime: slot.startTime, endTime: slot.endTime, status: slot.status });
-  };
-
-  const statusVariant: Record<string, 'success' | 'danger' | 'warning' | 'neutral' | 'purple'> = {
-    available: 'success',
-    booked_member: 'info' as 'neutral',
-    booked_outsider: 'warning',
-    tournament: 'purple',
-    blocked: 'danger',
+  const statusVariant = (status: SlotStatus) => {
+    switch (status) {
+      case 'available': return 'success';
+      case 'booked_member': return 'info';
+      case 'booked_outsider': return 'warning';
+      case 'tournament': return 'purple';
+      case 'blocked': return 'danger';
+      default: return 'neutral';
+    }
   };
 
   return (
-    <div>
-      <div style={{ marginBottom: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.75rem' }}>
-        <div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Slot Management</h1>
-          <p style={{ color: 'var(--color-gray-500)', marginTop: '0.25rem' }}>Manage lane availability.</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '1rem' }}>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Slot Management</h1>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <Input
+            type="date"
+            value={filterDate}
+            onChange={(e) => setFilterDate(e.target.value)}
+            label="Filter by Date"
+          />
+          <Button onClick={() => setShowModal(true)}>+ Add Slot</Button>
         </div>
-        <Button onClick={() => { resetForm(); setShowAdd(true); }}>+ Add Slot</Button>
       </div>
 
-      <Card style={{ marginBottom: '1.5rem' } as React.CSSProperties}>
-        <Input type="date" label="Select Date" value={selectedDate} onChange={e => setSelectedDate(e.target.value)} />
-      </Card>
-
       <Card>
-        <h2 style={{ fontWeight: 700, marginBottom: '1rem' }}>Slots for {formatDate(selectedDate)}</h2>
-        {daySlots.length === 0 ? (
-          <p style={{ color: 'var(--color-gray-400)', textAlign: 'center', padding: '2rem 0' }}>No slots for this date.</p>
+        <p style={{ marginBottom: '1rem', color: '#64748b', fontSize: '0.875rem' }}>
+          Showing {filteredSlots.length} slots for {formatDate(new Date(filterDate))}
+        </p>
+        {filteredSlots.length === 0 ? (
+          <p style={{ color: '#64748b', textAlign: 'center', padding: '2rem 0' }}>No slots for this date.</p>
         ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem' }}>
-            {daySlots.map(s => (
-              <div key={s.id} style={{ padding: '0.75rem 1rem', background: 'var(--color-gray-50)', borderRadius: 'var(--radius-md)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '0.5rem' }}>
-                <div>
-                  <span style={{ fontWeight: 600 }}>Lane {s.laneNumber}</span>
-                  <span style={{ color: 'var(--color-gray-500)', fontSize: '0.875rem', marginLeft: '0.5rem' }}>{s.startTime} – {s.endTime}</span>
+            {filteredSlots.map((slot) => (
+              <div key={slot.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
+                  <span style={{ fontWeight: 600 }}>Lane {slot.lane}</span>
+                  <span style={{ color: '#64748b', fontSize: '0.875rem' }}>{slot.startTime} – {slot.endTime}</span>
+                  <Badge variant={statusVariant(slot.status)}>{slot.status.replace('_', ' ')}</Badge>
                 </div>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                  <Badge variant={statusVariant[s.status] ?? 'neutral'}>{s.status}</Badge>
-                  <Button size="sm" variant="ghost" onClick={() => openEdit(s)}>Edit</Button>
-                  <Button size="sm" variant="danger" onClick={() => setDeleteId(s.id)}>Delete</Button>
+                <div style={{ display: 'flex', gap: '0.5rem' }}>
+                  <Select
+                    value={slot.status}
+                    onChange={(e) => updateSlot(slot.id, { status: e.target.value as SlotStatus })}
+                    options={[
+                      { value: 'available', label: 'Available' },
+                      { value: 'booked_member', label: 'Booked (Member)' },
+                      { value: 'booked_outsider', label: 'Booked (Outsider)' },
+                      { value: 'tournament', label: 'Tournament' },
+                      { value: 'blocked', label: 'Blocked' },
+                    ]}
+                  />
+                  <Button size="sm" variant="danger" onClick={() => deleteSlot(slot.id)}>Delete</Button>
                 </div>
               </div>
             ))}
@@ -106,41 +99,28 @@ export default function AdminSlots() {
         )}
       </Card>
 
-      {/* Add Modal */}
-      <Modal isOpen={showAdd} onClose={() => setShowAdd(false)} title="Add Slot">
+      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Add New Slot">
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <Input label="Lane Number" type="number" value={form.laneNumber} onChange={e => setForm(p => ({ ...p, laneNumber: e.target.value }))} required />
-          <Select label="Start Time" value={form.startTime} onChange={e => setForm(p => ({ ...p, startTime: e.target.value }))} options={TIME_OPTIONS} />
-          <Select label="End Time" value={form.endTime} onChange={e => setForm(p => ({ ...p, endTime: e.target.value }))} options={TIME_OPTIONS} />
-          <Select label="Status" value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} options={STATUS_OPTIONS} />
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-            <Button variant="ghost" onClick={() => setShowAdd(false)}>Cancel</Button>
-            <Button onClick={handleAdd} disabled={!form.laneNumber}>Add Slot</Button>
+          <Input label="Date" type="date" value={form.date} onChange={(e) => setForm(p => ({ ...p, date: e.target.value }))} required />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+            <Input label="Start Time" type="time" value={form.startTime} onChange={(e) => setForm(p => ({ ...p, startTime: e.target.value }))} required />
+            <Input label="End Time" type="time" value={form.endTime} onChange={(e) => setForm(p => ({ ...p, endTime: e.target.value }))} required />
           </div>
-        </div>
-      </Modal>
-
-      {/* Edit Modal */}
-      <Modal isOpen={!!editSlot} onClose={() => setEditSlot(null)} title="Edit Slot">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <Input label="Lane Number" type="number" value={form.laneNumber} onChange={e => setForm(p => ({ ...p, laneNumber: e.target.value }))} required />
-          <Select label="Start Time" value={form.startTime} onChange={e => setForm(p => ({ ...p, startTime: e.target.value }))} options={TIME_OPTIONS} />
-          <Select label="End Time" value={form.endTime} onChange={e => setForm(p => ({ ...p, endTime: e.target.value }))} options={TIME_OPTIONS} />
-          <Select label="Status" value={form.status} onChange={e => setForm(p => ({ ...p, status: e.target.value }))} options={STATUS_OPTIONS} />
+          <Input label="Lane Number" type="number" value={form.lane} onChange={(e) => setForm(p => ({ ...p, lane: e.target.value }))} required />
+          <Select
+            label="Status"
+            value={form.status}
+            onChange={(e) => setForm(p => ({ ...p, status: e.target.value as SlotStatus }))}
+            options={[
+              { value: 'available', label: 'Available' },
+              { value: 'blocked', label: 'Blocked' },
+              { value: 'tournament', label: 'Tournament' },
+            ]}
+          />
+          <Input label="Notes" value={form.notes} onChange={(e) => setForm(p => ({ ...p, notes: e.target.value }))} />
           <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-            <Button variant="ghost" onClick={() => setEditSlot(null)}>Cancel</Button>
-            <Button onClick={handleEdit}>Save Changes</Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* Delete Modal */}
-      <Modal isOpen={!!deleteId} onClose={() => setDeleteId(null)} title="Delete Slot">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <p>Are you sure you want to delete this slot?</p>
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-            <Button variant="ghost" onClick={() => setDeleteId(null)}>Cancel</Button>
-            <Button variant="danger" onClick={() => { if (deleteId) { deleteSlot(deleteId); setDeleteId(null); } }}>Delete</Button>
+            <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
+            <Button onClick={handleAdd}>Add Slot</Button>
           </div>
         </div>
       </Modal>
