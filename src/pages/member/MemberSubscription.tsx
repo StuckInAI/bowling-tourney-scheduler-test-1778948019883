@@ -1,7 +1,8 @@
 import { useAppContext } from '@/context/AppContext';
-import Button from '@/components/ui/Button';
-import Card from '@/components/ui/Card';
 import type { SubscriptionType } from '@/types';
+import Card from '@/components/ui/Card';
+import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
 
 const plans: { tier: SubscriptionType; name: string; price: number; features: string[] }[] = [
   { tier: 'basic', name: 'Basic', price: 9.99, features: ['5 bookings/month', 'Standard lanes', 'Email support'] },
@@ -13,34 +14,45 @@ export default function MemberSubscription() {
   const { currentUser, updateUser } = useAppContext();
   if (!currentUser) return null;
 
-  const handleUpgrade = (tier: SubscriptionType) => {
-    updateUser({ ...currentUser, subscription: tier, subscriptionTier: tier });
+  const handleSubscribe = (tier: SubscriptionType) => {
+    updateUser({ ...currentUser, subscription: tier });
   };
 
   return (
-    <div>
-      <h1 style={{ marginBottom: '1.5rem' }}>Subscription Plans</h1>
-      <p style={{ marginBottom: '2rem', color: 'var(--color-gray-600)' }}>
-        Current plan: <strong>{currentUser.subscription === 'none' ? 'No subscription' : currentUser.subscription}</strong>
-      </p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+      <div>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.25rem' }}>Subscription</h1>
+        <p style={{ color: 'var(--color-gray-600)' }}>Choose a plan that fits your bowling lifestyle</p>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '1.5rem' }}>
-        {plans.map(plan => (
-          <Card key={plan.tier}>
-            <h2 style={{ marginBottom: '0.5rem' }}>{plan.name}</h2>
-            <p style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '1rem' }}>${plan.price}<span style={{ fontSize: '0.875rem', fontWeight: 400 }}>/mo</span></p>
-            <ul style={{ marginBottom: '1.5rem', paddingLeft: '1.25rem' }}>
-              {plan.features.map(f => <li key={f} style={{ marginBottom: '0.25rem', fontSize: '0.875rem' }}>{f}</li>)}
-            </ul>
-            <Button
-              variant={currentUser.subscription === plan.tier ? 'secondary' : 'primary'}
-              disabled={currentUser.subscription === plan.tier}
-              onClick={() => handleUpgrade(plan.tier)}
-              fullWidth
-            >
-              {currentUser.subscription === plan.tier ? 'Current Plan' : 'Upgrade'}
-            </Button>
-          </Card>
-        ))}
+        {plans.map(plan => {
+          const isActive = currentUser.subscription === plan.tier;
+          return (
+            <Card key={plan.tier}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.75rem' }}>
+                <h3 style={{ fontWeight: 700, fontSize: '1.1rem' }}>{plan.name}</h3>
+                {isActive && <Badge variant="success">Active</Badge>}
+              </div>
+              <div style={{ fontSize: '1.75rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '1rem' }}>
+                ${plan.price}<span style={{ fontSize: '0.9rem', fontWeight: 400, color: 'var(--color-gray-500)' }}>/mo</span>
+              </div>
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0, display: 'flex', flexDirection: 'column', gap: '0.4rem', marginBottom: '1.25rem' }}>
+                {plan.features.map(f => (
+                  <li key={f} style={{ fontSize: '0.875rem', color: 'var(--color-gray-600)' }}>✓ {f}</li>
+                ))}
+              </ul>
+              <Button
+                fullWidth
+                variant={isActive ? 'secondary' : 'primary'}
+                disabled={isActive}
+                onClick={() => handleSubscribe(plan.tier)}
+              >
+                {isActive ? 'Current Plan' : 'Subscribe'}
+              </Button>
+            </Card>
+          );
+        })}
       </div>
     </div>
   );

@@ -1,28 +1,38 @@
-import { useState } from 'react';
-import type { User, Slot, Booking, Tournament, Notification } from '@/types';
-import { loadFromStorage, saveToStorage } from '@/lib/storage';
+import { useState, useCallback } from 'react';
+import type { User, Slot, Booking, Tournament, Notification, AppContextType } from '@/types';
+import { loadState, saveState } from '@/lib/storage';
 
-export function useStore() {
-  const [users, setUsers] = useState<User[]>(() => loadFromStorage<User[]>('users', []));
-  const [currentUser, setCurrentUser] = useState<User | null>(() => loadFromStorage<User | null>('currentUser', null));
-  const [slots, setSlots] = useState<Slot[]>(() => loadFromStorage<Slot[]>('slots', []));
-  const [bookings, setBookings] = useState<Booking[]>(() => loadFromStorage<Booking[]>('bookings', []));
-  const [tournaments, setTournaments] = useState<Tournament[]>(() => loadFromStorage<Tournament[]>('tournaments', []));
-  const [notifications, setNotifications] = useState<Notification[]>(() => loadFromStorage<Notification[]>('notifications', []));
+export function useStore(): AppContextType {
+  const [currentUser, setCurrentUser] = useState<User | null>(() => loadState('currentUser', null));
+  const [users, setUsers] = useState<User[]>(() => loadState('users', []));
+  const [slots, setSlots] = useState<Slot[]>(() => loadState('slots', []));
+  const [bookings, setBookings] = useState<Booking[]>(() => loadState('bookings', []));
+  const [tournaments, setTournaments] = useState<Tournament[]>(() => loadState('tournaments', []));
+  const [notifications, setNotifications] = useState<Notification[]>(() => loadState('notifications', []));
 
-  // Auth
-  const login = (email: string, password: string): boolean => {
-    const user = users.find(u => u.email === email && u.password === password);
-    if (user) {
-      setCurrentUser(user);
-      saveToStorage('currentUser', user);
+  const persist = useCallback(<T>(key: string, value: T) => {
+    saveState(key, value);
+  }, []);
+
+  const login = useCallback((email: string, password: string): boolean => {
+    const allUsers: User[] = loadState('users', []);
+    const found = allUsers.find(u => u.email === email && u.password === password);
+    if (found) {
+      setCurrentUser(found);
+      saveState('currentUser', found);
       return true;
     }
     return false;
-  };
+  }, []);
 
-  const register = (name: string, email: string, password: string): boolean => {
-    if (users.find(u => u.email === email)) return false;
+  const logout = useCallback(() => {
+    setCurrentUser(null);
+    saveState('currentUser', null);
+  }, []);
+
+  const register = useCallback((name: string, email: string, password: string): boolean => {
+    const allUsers: User[] = loadState('users', []);
+    if (allUsers.find(u => u.email === email)) return false;
     const newUser: User = {
       id: crypto.randomUUID(),
       name,
@@ -30,128 +40,161 @@ export function useStore() {
       password,
       role: 'member',
       subscription: 'none',
-      createdAt: new Date().toISOString(),
+      joinedAt: new Date().toISOString(),
     };
-    const updated = [...users, newUser];
+    const updated = [...allUsers, newUser];
     setUsers(updated);
-    saveToStorage('users', updated);
+    saveState('users', updated);
     setCurrentUser(newUser);
-    saveToStorage('currentUser', newUser);
+    saveState('currentUser', newUser);
     return true;
-  };
+  }, []);
 
-  const logout = () => {
-    setCurrentUser(null);
-    saveToStorage('currentUser', null);
-  };
-
-  // Users
-  const updateUser = (updatedFields: Partial<User> & { id: string }) => {
-    const updated = users.map(u => u.id === updatedFields.id ? { ...u, ...updatedFields } : u);
-    setUsers(updated);
-    saveToStorage('users', updated);
-    if (currentUser && currentUser.id === updatedFields.id) {
-      const updatedCurrent = { ...currentUser, ...updatedFields };
-      setCurrentUser(updatedCurrent);
-      saveToStorage('currentUser', updatedCurrent);
-    }
-  };
-
-  // Slots
-  const addSlot = (slot: Slot) => {
-    const updated = [...slots, slot];
-    setSlots(updated);
-    saveToStorage('slots', updated);
-  };
-
-  const updateSlot = (updatedFields: Partial<Slot> & { id: string }) => {
-    const updated = slots.map(s => s.id === updatedFields.id ? { ...s, ...updatedFields } : s);
-    setSlots(updated);
-    saveToStorage('slots', updated);
-  };
-
-  const deleteSlot = (id: string) => {
-    const updated = slots.filter(s => s.id !== id);
-    setSlots(updated);
-    saveToStorage('slots', updated);
-  };
-
-  // Bookings
-  const addBooking = (booking: Booking) => {
-    const updated = [...bookings, booking];
-    setBookings(updated);
-    saveToStorage('bookings', updated);
-  };
-
-  const cancelBooking = (id: string) => {
-    const updated = bookings.map(b => b.id === id ? { ...b, status: 'cancelled' as const } : b);
-    setBookings(updated);
-    saveToStorage('bookings', updated);
-  };
-
-  // Tournaments
-  const addTournament = (tournament: Tournament) => {
-    const updated = [...tournaments, tournament];
-    setTournaments(updated);
-    saveToStorage('tournaments', updated);
-  };
-
-  const updateTournament = (updatedFields: Partial<Tournament> & { id: string }) => {
-    const updated = tournaments.map(t => t.id === updatedFields.id ? { ...t, ...updatedFields } : t);
-    setTournaments(updated);
-    saveToStorage('tournaments', updated);
-  };
-
-  const deleteTournament = (id: string) => {
-    const updated = tournaments.filter(t => t.id !== id);
-    setTournaments(updated);
-    saveToStorage('tournaments', updated);
-  };
-
-  const registerForTournament = (tournamentId: string, userId: string) => {
-    const updated = tournaments.map(t => {
-      if (t.id === tournamentId && !t.registeredParticipants.includes(userId)) {
-        return { ...t, registeredParticipants: [...t.registeredParticipants, userId] };
-      }
-      return t;
+  const updateUser = useCallback((user: User) => {
+    setUsers(prev => {
+      const updated = prev.map(u => u.id === user.id ? user : u);
+      persist('users', updated);
+      return updated;
     });
-    setTournaments(updated);
-    saveToStorage('tournaments', updated);
-  };
+    setCurrentUser(prev => {
+      if (prev?.id === user.id) {
+        persist('currentUser', user);
+        return user;
+      }
+      return prev;
+    });
+  }, [persist]);
 
-  // Notifications
-  const addNotification = (notification: Notification) => {
-    const updated = [...notifications, notification];
-    setNotifications(updated);
-    saveToStorage('notifications', updated);
-  };
+  const updateSlot = useCallback((slot: Partial<Slot> & { id: string }) => {
+    setSlots(prev => {
+      const updated = prev.map(s => s.id === slot.id ? { ...s, ...slot } : s);
+      persist('slots', updated);
+      return updated;
+    });
+  }, [persist]);
 
-  const deleteNotification = (id: string) => {
-    const updated = notifications.filter(n => n.id !== id);
-    setNotifications(updated);
-    saveToStorage('notifications', updated);
-  };
+  const addSlot = useCallback((slot: Omit<Slot, 'id'>) => {
+    const newSlot: Slot = { ...slot, id: crypto.randomUUID() };
+    setSlots(prev => {
+      const updated = [...prev, newSlot];
+      persist('slots', updated);
+      return updated;
+    });
+  }, [persist]);
+
+  const deleteSlot = useCallback((id: string) => {
+    setSlots(prev => {
+      const updated = prev.filter(s => s.id !== id);
+      persist('slots', updated);
+      return updated;
+    });
+  }, [persist]);
+
+  const addBooking = useCallback((booking: Omit<Booking, 'id'>) => {
+    const newBooking: Booking = { ...booking, id: crypto.randomUUID() };
+    setBookings(prev => {
+      const updated = [...prev, newBooking];
+      persist('bookings', updated);
+      return updated;
+    });
+  }, [persist]);
+
+  const updateBooking = useCallback((booking: Partial<Booking> & { id: string }) => {
+    setBookings(prev => {
+      const updated = prev.map(b => b.id === booking.id ? { ...b, ...booking } : b);
+      persist('bookings', updated);
+      return updated;
+    });
+  }, [persist]);
+
+  const cancelBooking = useCallback((id: string) => {
+    setBookings(prev => {
+      const updated = prev.map(b => b.id === id ? { ...b, status: 'cancelled' as const } : b);
+      persist('bookings', updated);
+      return updated;
+    });
+  }, [persist]);
+
+  const addTournament = useCallback((tournament: Omit<Tournament, 'id'>) => {
+    const newT: Tournament = { ...tournament, id: crypto.randomUUID() };
+    setTournaments(prev => {
+      const updated = [...prev, newT];
+      persist('tournaments', updated);
+      return updated;
+    });
+  }, [persist]);
+
+  const updateTournament = useCallback((tournament: Partial<Tournament> & { id: string }) => {
+    setTournaments(prev => {
+      const updated = prev.map(t => t.id === tournament.id ? { ...t, ...tournament } : t);
+      persist('tournaments', updated);
+      return updated;
+    });
+  }, [persist]);
+
+  const deleteTournament = useCallback((id: string) => {
+    setTournaments(prev => {
+      const updated = prev.filter(t => t.id !== id);
+      persist('tournaments', updated);
+      return updated;
+    });
+  }, [persist]);
+
+  const registerForTournament = useCallback((tournamentId: string, userId: string) => {
+    setTournaments(prev => {
+      const updated = prev.map(t => {
+        if (t.id === tournamentId && !t.registeredUserIds.includes(userId)) {
+          return {
+            ...t,
+            registeredUserIds: [...t.registeredUserIds, userId],
+            currentParticipants: t.currentParticipants + 1,
+          };
+        }
+        return t;
+      });
+      persist('tournaments', updated);
+      return updated;
+    });
+  }, [persist]);
+
+  const addNotification = useCallback((notification: Omit<Notification, 'id'>) => {
+    const newN: Notification = { ...notification, id: crypto.randomUUID() };
+    setNotifications(prev => {
+      const updated = [...prev, newN];
+      persist('notifications', updated);
+      return updated;
+    });
+  }, [persist]);
+
+  const deleteNotification = useCallback((id: string) => {
+    setNotifications(prev => {
+      const updated = prev.filter(n => n.id !== id);
+      persist('notifications', updated);
+      return updated;
+    });
+  }, [persist]);
 
   return {
     currentUser,
-    login,
-    register,
-    logout,
     users,
-    updateUser,
     slots,
-    addSlot,
-    updateSlot,
-    deleteSlot,
     bookings,
-    addBooking,
-    cancelBooking,
     tournaments,
+    notifications,
+    login,
+    logout,
+    register,
+    updateUser,
+    updateSlot,
+    addSlot,
+    deleteSlot,
+    addBooking,
+    updateBooking,
+    cancelBooking,
     addTournament,
     updateTournament,
     deleteTournament,
     registerForTournament,
-    notifications,
     addNotification,
     deleteNotification,
   };

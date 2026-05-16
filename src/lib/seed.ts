@@ -1,101 +1,119 @@
-import { loadFromStorage, saveToStorage } from '@/lib/storage';
-import type { User, Slot, Tournament } from '@/types';
+import { loadState, saveState } from './storage';
+import type { User, Slot, Tournament, Notification } from '@/types';
 
 export function seedInitialData() {
-  const users = loadFromStorage<User[]>('users', []);
-  if (users.length > 0) return;
+  const seeded = loadState('seeded', false);
+  if (seeded) return;
 
-  const adminUser: User = {
-    id: 'admin-1',
-    name: 'Admin User',
-    email: 'admin@bowlpro.com',
-    password: 'admin123',
-    role: 'admin',
-    subscription: 'none',
-    createdAt: new Date().toISOString(),
-  };
-
-  const memberUser: User = {
-    id: 'member-1',
-    name: 'John Doe',
-    email: 'john@example.com',
-    password: 'member123',
-    role: 'member',
-    subscription: 'monthly',
-    subscriptionExpiry: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
-    createdAt: new Date().toISOString(),
-  };
-
-  saveToStorage('users', [adminUser, memberUser]);
-
-  // Generate slots for the next 7 days
-  const slots: Slot[] = [];
-  const times = [
-    { start: '09:00', end: '10:00' },
-    { start: '10:00', end: '11:00' },
-    { start: '11:00', end: '12:00' },
-    { start: '13:00', end: '14:00' },
-    { start: '14:00', end: '15:00' },
-    { start: '15:00', end: '16:00' },
-    { start: '16:00', end: '17:00' },
-    { start: '17:00', end: '18:00' },
-    { start: '18:00', end: '19:00' },
-    { start: '19:00', end: '20:00' },
-    { start: '20:00', end: '21:00' },
+  // Seed admin user
+  const users: User[] = [
+    {
+      id: 'admin-1',
+      name: 'Admin User',
+      email: 'admin@bowlpro.com',
+      password: 'admin123',
+      role: 'admin',
+      subscription: 'none',
+      joinedAt: new Date().toISOString(),
+    },
+    {
+      id: 'member-1',
+      name: 'John Doe',
+      email: 'john@example.com',
+      password: 'member123',
+      role: 'member',
+      subscription: 'premium',
+      joinedAt: new Date().toISOString(),
+    },
+    {
+      id: 'member-2',
+      name: 'Jane Smith',
+      email: 'jane@example.com',
+      password: 'member123',
+      role: 'member',
+      subscription: 'basic',
+      joinedAt: new Date().toISOString(),
+    },
   ];
-  const lanes = [1, 2, 3, 4, 5, 6];
+
+  // Seed slots for next 7 days
+  const slots: Slot[] = [];
+  const times = ['09:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'];
+  const lanes = [1, 2, 3, 4, 5, 6, 7, 8];
 
   for (let d = 0; d < 7; d++) {
     const date = new Date();
     date.setDate(date.getDate() + d);
     const dateStr = date.toISOString().split('T')[0];
 
-    for (const lane of lanes) {
-      for (const time of times) {
+    for (const time of times) {
+      for (const lane of lanes) {
         slots.push({
-          id: crypto.randomUUID(),
+          id: `slot-${dateStr}-${time}-${lane}`,
           date: dateStr,
-          startTime: time.start,
-          endTime: time.end,
+          time,
           lane,
           status: 'available',
-          type: 'standard',
-          createdAt: new Date().toISOString(),
         });
       }
     }
   }
 
-  saveToStorage('slots', slots);
-
+  // Seed tournaments
+  const now = new Date();
   const tournaments: Tournament[] = [
     {
       id: 'tournament-1',
-      name: 'Summer Championship',
-      date: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      startTime: '10:00',
-      endTime: '18:00',
-      status: 'upcoming',
-      registrationOpen: true,
+      name: 'Summer Bowling Championship',
+      description: 'Annual summer championship for all skill levels',
+      date: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      startDate: new Date(now.getTime() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      endDate: new Date(now.getTime() + 9 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       maxParticipants: 32,
-      registeredParticipants: [],
-      description: 'Annual summer bowling championship open to all members.',
-      createdAt: new Date().toISOString(),
+      currentParticipants: 12,
+      registeredUserIds: ['member-1'],
+      status: 'upcoming',
+      prize: '$500 cash prize',
+      entryFee: 25,
     },
     {
       id: 'tournament-2',
-      name: 'Friday Night League',
-      date: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
-      startTime: '18:00',
-      endTime: '22:00',
-      status: 'upcoming',
-      registrationOpen: true,
+      name: 'Friday Night Strikes',
+      description: 'Weekly casual tournament every Friday evening',
+      date: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      startDate: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+      endDate: new Date(now.getTime() + 2 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
       maxParticipants: 16,
-      registeredParticipants: [],
-      description: 'Weekly Friday night bowling league.',
+      currentParticipants: 8,
+      registeredUserIds: [],
+      status: 'upcoming',
+      prize: 'Trophy + Free month membership',
+    },
+  ];
+
+  // Seed notifications
+  const notifications: Notification[] = [
+    {
+      id: 'notif-1',
+      title: 'Welcome to BowlPro!',
+      message: 'Thank you for joining BowlPro. Book your first lane today!',
+      type: 'info',
+      targetRole: 'all',
+      createdAt: new Date().toISOString(),
+    },
+    {
+      id: 'notif-2',
+      title: 'Summer Championship Registration Open',
+      message: 'Register now for the Summer Bowling Championship. Limited spots available!',
+      type: 'success',
+      targetRole: 'member',
       createdAt: new Date().toISOString(),
     },
   ];
 
-  saveToStorage('tournaments', tournaments);
+  saveState('users', users);
+  saveState('slots', slots);
+  saveState('tournaments', tournaments);
+  saveState('notifications', notifications);
+  saveState('seeded', true);
 }
