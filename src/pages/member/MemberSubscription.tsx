@@ -10,62 +10,46 @@ export default function MemberSubscription() {
   const isActive = currentUser?.subscriptionStatus === 'active';
   const expiry = currentUser?.subscriptionExpiry;
 
-  const handleActivate = () => {
+  const handleSubscribe = () => {
     if (!currentUser) return;
-    updateSubscription(currentUser.id, 'yearly');
+    const expiryDate = new Date();
+    expiryDate.setFullYear(expiryDate.getFullYear() + 1);
+    updateSubscription(currentUser.id, 'active', expiryDate.toISOString().split('T')[0]);
+  };
+
+  const handleCancel = () => {
+    if (!currentUser) return;
+    updateSubscription(currentUser.id, 'inactive');
   };
 
   return (
-    <div className="flex flex-col gap-6 max-w-lg">
-      <div>
-        <h1 className="text-2xl font-bold">Subscription</h1>
-        <p className="text-slate-500">Manage your yearly membership.</p>
-      </div>
-
+    <div className="space-y-6 max-w-lg">
+      <h1 className="text-2xl font-bold text-slate-800">Subscription</h1>
       <Card>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-bold text-lg">Yearly Membership</h2>
-          <Badge variant={isActive ? 'success' : 'danger'}>
-            {isActive ? 'Active' : 'Inactive'}
-          </Badge>
-        </div>
-        <div className="flex flex-col gap-2 text-sm text-slate-600 mb-6">
-          <div className="flex items-center gap-2">✅ <span>Book lanes any time online</span></div>
-          <div className="flex items-center gap-2">✅ <span>Join exclusive tournaments</span></div>
-          <div className="flex items-center gap-2">✅ <span>Priority lane selection</span></div>
-          <div className="flex items-center gap-2">✅ <span>Cancel bookings up to 2 hours before</span></div>
-        </div>
-        {isActive && expiry ? (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-800">
-            <strong>Active until:</strong> {formatDate(new Date(expiry))}
+        <div className="space-y-4">
+          <div className="flex items-center justify-between">
+            <span className="font-medium text-slate-700">Status</span>
+            <Badge variant={isActive ? 'success' : 'neutral'}>
+              {isActive ? 'Active' : 'Inactive'}
+            </Badge>
           </div>
-        ) : (
-          <div className="flex flex-col gap-3">
-            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-sm text-orange-800">
-              Your membership is inactive. Activate to access member features.
+          {expiry && (
+            <div className="flex items-center justify-between">
+              <span className="font-medium text-slate-700">Expires</span>
+              <span className="text-slate-600">{formatDate(new Date(expiry + 'T12:00:00'))}</span>
             </div>
-            <Button onClick={handleActivate} className="w-full">
-              Activate Yearly Membership ($99/year)
-            </Button>
+          )}
+          <div className="pt-2">
+            {isActive ? (
+              <Button variant="danger" onClick={handleCancel} className="w-full">
+                Cancel Subscription
+              </Button>
+            ) : (
+              <Button onClick={handleSubscribe} className="w-full">
+                Subscribe (1 Year)
+              </Button>
+            )}
           </div>
-        )}
-      </Card>
-
-      <Card>
-        <h2 className="font-bold mb-3">Plan Details</h2>
-        <div className="flex justify-between text-sm py-2 border-b">
-          <span className="text-slate-500">Plan</span>
-          <span className="font-medium">Yearly</span>
-        </div>
-        <div className="flex justify-between text-sm py-2 border-b">
-          <span className="text-slate-500">Price</span>
-          <span className="font-medium">$99 / year</span>
-        </div>
-        <div className="flex justify-between text-sm py-2">
-          <span className="text-slate-500">Status</span>
-          <span className={`font-medium ${isActive ? 'text-green-600' : 'text-red-600'}`}>
-            {isActive ? 'Active' : 'Inactive'}
-          </span>
         </div>
       </Card>
     </div>
