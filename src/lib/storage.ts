@@ -1,18 +1,19 @@
-const PREFIX = 'bowling_';
+const STORAGE_KEY = 'bowling_app_state';
 
-export function loadState<T>(key: string): T | null {
+export function loadState<T = unknown>(): T | null {
   try {
-    const raw = localStorage.getItem(PREFIX + key);
-    if (!raw) return null;
-    return JSON.parse(raw) as T;
+    const serialized = localStorage.getItem(STORAGE_KEY);
+    if (!serialized) return null;
+    return JSON.parse(serialized) as T;
   } catch {
     return null;
   }
 }
 
-export function saveState<T>(key: string, value: T): void {
+export function saveState<T = unknown>(value: T): void {
   try {
-    localStorage.setItem(PREFIX + key, JSON.stringify(value));
+    const serialized = JSON.stringify(value);
+    localStorage.setItem(STORAGE_KEY, serialized);
   } catch {
     // ignore
   }
