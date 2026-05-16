@@ -1,6 +1,6 @@
-const PREFIX = 'bowlpro_';
+const PREFIX = 'bowling_';
 
-export function getItem<T>(key: string): T | null {
+export function loadState<T>(key: string): T | null {
   try {
     const raw = localStorage.getItem(PREFIX + key);
     if (!raw) return null;
@@ -10,10 +10,10 @@ export function getItem<T>(key: string): T | null {
   }
 }
 
-export function setItem<T>(key: string, value: T): void {
-  localStorage.setItem(PREFIX + key, JSON.stringify(value));
-}
-
-export function removeItem(key: string): void {
-  localStorage.removeItem(PREFIX + key);
+export function saveState<T>(key: string, value: T): void {
+  try {
+    localStorage.setItem(PREFIX + key, JSON.stringify(value));
+  } catch {
+    // ignore
+  }
 }

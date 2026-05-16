@@ -1,24 +1,21 @@
-import type { LucideIcon } from 'lucide-react';
 import styles from './StatCard.module.css';
 
 type StatCardProps = {
-  label: string;
+  title: string;
   value: string | number;
-  icon: LucideIcon;
-  color?: 'blue' | 'green' | 'amber' | 'purple' | 'red';
-  sub?: string;
+  icon?: string;
+  color?: 'blue' | 'green' | 'amber' | 'purple' | 'red' | 'orange';
+  subtitle?: string;
 };
 
-export default function StatCard({ label, value, icon: Icon, color = 'blue', sub }: StatCardProps) {
+export default function StatCard({ title, value, icon, color = 'blue', subtitle }: StatCardProps) {
   return (
-    <div className={styles.card}>
-      <div className={`${styles.iconWrap} ${styles[color]}`}>
-        <Icon size={22} />
-      </div>
-      <div className={styles.info}>
-        <span className={styles.label}>{label}</span>
-        <span className={styles.value}>{value}</span>
-        {sub && <span className={styles.sub}>{sub}</span>}
+    <div className={`${styles.card} ${styles[color] ?? ''}`}>
+      {icon && <div className={styles.icon}>{icon}</div>}
+      <div className={styles.body}>
+        <div className={styles.value}>{value}</div>
+        <div className={styles.title}>{title}</div>
+        {subtitle && <div className={styles.subtitle}>{subtitle}</div>}
       </div>
     </div>
   );
