@@ -1,53 +1,54 @@
 import { useAppContext } from '@/context/AppContext';
 import Card from '@/components/ui/Card';
-import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
+import Button from '@/components/ui/Button';
 import { formatDate } from '@/lib/utils';
 
 export default function MemberMyBookings() {
-  const { bookings, currentUser, cancelBooking } = useAppContext();
+  const { currentUser, bookings, updateBooking } = useAppContext();
 
-  const myBookings = bookings.filter((b) => b.userId === currentUser?.id);
+  const myBookings = bookings.filter(b => b.userId === currentUser?.id);
 
-  const statusVariant = (status: string) => {
-    if (status === 'confirmed') return 'success';
-    if (status === 'cancelled') return 'danger';
-    return 'neutral';
+  const handleCancel = (id: string) => {
+    const booking = myBookings.find(b => b.id === id);
+    if (booking) {
+      updateBooking({ ...booking, status: 'cancelled' });
+    }
   };
-
-  if (myBookings.length === 0) {
-    return (
-      <Card>
-        <div style={{ textAlign: 'center', padding: '3rem' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '1rem' }}>📋</div>
-          <h2>No Bookings Yet</h2>
-          <p style={{ color: '#64748b' }}>You haven't made any bookings yet.</p>
-        </div>
-      </Card>
-    );
-  }
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>My Bookings</h1>
-      {myBookings.map((b) => (
-        <Card key={b.id}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem', flexWrap: 'wrap' }}>
-            <div>
-              <div style={{ fontWeight: 700, marginBottom: '0.25rem' }}>Lane {b.lane}</div>
-              <div style={{ fontSize: '0.875rem', color: '#475569' }}>
-                📅 {formatDate(new Date(b.date))} · {b.startTime}–{b.endTime}
-              </div>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: '0.5rem' }}>
-              <Badge variant={statusVariant(b.status) as any}>{b.status}</Badge>
-              {b.status === 'confirmed' && (
-                <Button size="sm" variant="danger" onClick={() => cancelBooking(b.id)}>Cancel</Button>
-              )}
-            </div>
-          </div>
+      <div>
+        <h1 style={{ fontSize: '1.5rem', fontWeight: 800, color: '#1e3a5f' }}>My Bookings</h1>
+        <p style={{ color: '#64748b', marginTop: '0.25rem' }}>View and manage your lane reservations</p>
+      </div>
+
+      {myBookings.length === 0 ? (
+        <Card>
+          <p style={{ color: '#64748b', textAlign: 'center', padding: '2rem 0' }}>You have no bookings yet.</p>
         </Card>
-      ))}
+      ) : (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+          {myBookings.map(b => (
+            <Card key={b.id}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '0.5rem' }}>
+                <div>
+                  <div style={{ fontWeight: 700, marginBottom: '0.25rem' }}>Lane {b.laneNumber ?? b.lane}</div>
+                  <div style={{ fontSize: '0.875rem', color: '#64748b' }}>
+                    📅 {formatDate(new Date(b.date))} · {b.time ?? `${b.startTime ?? ''}–${b.endTime ?? ''}`}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+                  <Badge variant={b.status === 'confirmed' ? 'success' : 'danger'}>{b.status}</Badge>
+                  {b.status === 'confirmed' && (
+                    <Button size="sm" variant="danger" onClick={() => handleCancel(b.id)}>Cancel</Button>
+                  )}
+                </div>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
     </div>
   );
 }
