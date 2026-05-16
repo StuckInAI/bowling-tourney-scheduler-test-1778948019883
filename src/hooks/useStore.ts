@@ -1,75 +1,69 @@
-import { useState, useCallback } from 'react';
+import { useState, useEffect } from 'react';
 import { loadState, saveState } from '@/lib/storage';
-import type { AppState } from '@/types';
-import { seedInitialData } from '@/lib/seed';
+import type { AppState, User } from '@/types';
 
-const DEFAULT_STATE: AppState = {
+const INITIAL_STATE: AppState = {
   users: [],
   slots: [],
   bookings: [],
   tournaments: [],
   notifications: [],
-  currentUserId: null,
+  currentUser: undefined,
 };
 
 export function useStore() {
   const [state, setState] = useState<AppState>(() => {
-    const saved = loadState<AppState>();
-    if (saved && saved.users && saved.users.length > 0) {
-      return saved;
-    }
-    return DEFAULT_STATE;
+    const saved = loadState();
+    return saved ?? INITIAL_STATE;
   });
 
-  const updateState = useCallback((updater: (prev: AppState) => AppState) => {
-    setState((prev) => {
-      const next = updater(prev);
-      saveState<AppState>(next);
-      return next;
-    });
-  }, []);
+  useEffect(() => {
+    saveState(state);
+  }, [state]);
 
-  const currentUser = state.currentUserId
-    ? state.users.find((u) => u.id === state.currentUserId) ?? null
-    : null;
+  const updateState = (updater: (prev: AppState) => AppState) => {
+    setState((prev) => updater(prev));
+  };
 
-  const login = useCallback((email: string, password: string): boolean => {
-    const user = state.users.find(
+  const login = (email: string, password: string): boolean => {
+    const user = (state.users ?? []).find(
       (u) => u.email === email && u.password === password
     );
-    if (!user) return false;
-    updateState((prev) => ({ ...prev, currentUserId: user.id }));
-    return true;
-  }, [state.users, updateState]);
+    if (user) {
+      setState((prev) => ({ ...prev, currentUser: user }));
+      return true;
+    }
+    return false;
+  };
 
-  const logout = useCallback(() => {
-    updateState((prev) => ({ ...prev, currentUserId: null }));
-  }, [updateState]);
+  const logout = () => {
+    setState((prev) => ({ ...prev, currentUser: undefined }));
+  };
 
-  const register = useCallback((name: string, email: string, password: string): boolean => {
-    if (state.users.find((u) => u.email === email)) return false;
-    const newUser = {
-      id: crypto.randomUUID(),
+  const register = (name: string, email: string, password: string): boolean => {
+    const exists = (state.users ?? []).some((u) => u.email === email);
+    if (exists) return false;
+    const newUser: User = {
+      id: `user_${Date.now()}`,
       name,
       email,
       password,
-      role: 'member' as const,
-      membershipType: 'basic' as const,
-      joinDate: new Date().toISOString().split('T')[0],
-      status: 'active' as const,
+      role: 'member',
+      subscription: 'none',
+      joinedAt: new Date().toISOString(),
     };
-    updateState((prev) => ({
+    setState((prev) => ({
       ...prev,
-      users: [...prev.users, newUser],
-      currentUserId: newUser.id,
+      users: [...(prev.users ?? []), newUser],
+      currentUser: newUser,
     }));
     return true;
-  }, [state.users, updateState]);
+  };
 
   return {
     state,
     updateState,
-    currentUser,
+    currentUser: state.currentUser as User | undefined,
     login,
     logout,
     register,
