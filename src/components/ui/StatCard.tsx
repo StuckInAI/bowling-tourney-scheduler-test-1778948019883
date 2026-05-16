@@ -1,33 +1,34 @@
+import type { ReactNode } from 'react';
+
 interface StatCardProps {
   title: string;
-  value: number | string;
-  icon?: string;
+  value: string | number;
+  icon?: ReactNode;
   color?: 'blue' | 'green' | 'purple' | 'orange' | 'red';
   subtitle?: string;
 }
 
 export default function StatCard({ title, value, icon, color = 'blue', subtitle }: StatCardProps) {
   const colorMap = {
-    blue: { bg: '#eff6ff', text: '#1d4ed8', iconBg: '#dbeafe' },
-    green: { bg: '#f0fdf4', text: '#15803d', iconBg: '#dcfce7' },
-    purple: { bg: '#faf5ff', text: '#7e22ce', iconBg: '#f3e8ff' },
-    orange: { bg: '#fff7ed', text: '#c2410c', iconBg: '#ffedd5' },
-    red: { bg: '#fef2f2', text: '#b91c1c', iconBg: '#fee2e2' },
+    blue: 'bg-blue-50 text-blue-600',
+    green: 'bg-green-50 text-green-600',
+    purple: 'bg-purple-50 text-purple-600',
+    orange: 'bg-orange-50 text-orange-600',
+    red: 'bg-red-50 text-red-600',
   };
-  const c = colorMap[color];
 
   return (
-    <div style={{ background: c.bg, borderRadius: '12px', padding: '1.25rem', display: 'flex', alignItems: 'center', gap: '1rem' }}>
-      {icon && (
-        <div style={{ background: c.iconBg, borderRadius: '10px', padding: '0.75rem', fontSize: '1.5rem', lineHeight: 1 }}>
-          {icon}
-        </div>
-      )}
-      <div>
-        <div style={{ fontSize: '0.75rem', color: '#64748b', fontWeight: 500 }}>{title}</div>
-        <div style={{ fontSize: '1.75rem', fontWeight: 700, color: c.text, lineHeight: 1.2 }}>{value}</div>
-        {subtitle && <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginTop: '0.2rem' }}>{subtitle}</div>}
+    <div className="bg-white rounded-xl border border-slate-200 shadow-sm p-5">
+      <div className="flex items-center justify-between mb-3">
+        <span className="text-sm font-medium text-slate-500">{title}</span>
+        {icon && (
+          <div className={`p-2 rounded-lg ${colorMap[color]}`}>
+            {icon}
+          </div>
+        )}
       </div>
+      <div className="text-2xl font-bold text-slate-800">{value}</div>
+      {subtitle && <div className="text-xs text-slate-500 mt-1">{subtitle}</div>}
     </div>
   );
 }

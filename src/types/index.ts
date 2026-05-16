@@ -6,11 +6,14 @@ export interface User {
   email: string;
   password: string;
   role: UserRole;
-  subscriptionTier: 'none' | 'basic' | 'premium';
-  subscriptionStatus: 'active' | 'inactive';
-  subscriptionExpiry?: string;
+  phone?: string;
+  membershipType?: 'basic' | 'premium' | 'vip';
+  membershipExpiry?: string;
   createdAt: string;
+  notificationsEnabled?: boolean;
 }
+
+export type SlotStatus = 'available' | 'booked' | 'maintenance';
 
 export interface Slot {
   id: string;
@@ -18,94 +21,86 @@ export interface Slot {
   startTime: string;
   endTime: string;
   lane: number;
-  capacity: number;
-  bookedCount: number;
-  status: 'available' | 'full' | 'closed';
+  status: SlotStatus;
   price: number;
+  createdAt: string;
 }
+
+export type BookingStatus = 'confirmed' | 'cancelled' | 'completed';
 
 export interface Booking {
   id: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
   slotId: string;
-  userId?: string;
-  userName?: string;
-  outsiderName?: string;
-  outsiderEmail?: string;
-  outsiderPhone?: string;
-  confirmationCode?: string;
-  status: 'confirmed' | 'cancelled' | 'pending';
-  createdAt: string;
-  date: string;
-  startTime: string;
-  endTime: string;
+  slotDate: string;
+  slotTime: string;
   lane: number;
+  status: BookingStatus;
+  price: number;
+  createdAt: string;
+  isGuest?: boolean;
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
 }
 
 export interface TournamentParticipant {
   userId: string;
+  name: string;
   userName: string;
   userEmail: string;
-  name: string;
-  status: 'registered' | 'checked-in' | 'eliminated' | 'winner';
+  status: 'registered' | 'waitlisted' | 'withdrawn';
   joinedAt: string;
 }
 
-export interface TournamentMatch {
-  id: string;
-  round: number;
-  participant1Id: string;
-  participant2Id: string;
-  winnerId?: string;
-  status: 'scheduled' | 'in-progress' | 'completed';
-  scheduledTime?: string;
-}
+export type TournamentStatus = 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
 
 export interface Tournament {
   id: string;
   name: string;
   description: string;
-  date: string;
-  startTime: string;
-  endTime: string;
+  startDate: string;
+  endDate: string;
+  registrationDeadline: string;
   maxParticipants: number;
+  prizePool: string;
   entryFee: number;
-  prize?: string;
-  status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+  status: TournamentStatus;
+  format: string;
   participants: TournamentParticipant[];
   matches: TournamentMatch[];
   createdAt: string;
 }
 
-export interface AppNotification {
+export interface TournamentMatch {
+  id: string;
+  round: number;
+  player1: string;
+  player2: string;
+  winner?: string;
+  score?: string;
+  scheduledAt: string;
+}
+
+export type NotificationType = 'info' | 'warning' | 'success' | 'error';
+
+export interface Notification {
   id: string;
   title: string;
   message: string;
-  recipientType: 'all' | 'members' | 'specific';
-  recipientId?: string;
+  type: NotificationType;
+  targetRole: UserRole | 'all';
   createdAt: string;
   read?: boolean;
 }
 
-export interface AppContextType {
-  currentUser: User | null;
-  login: (email: string, password: string) => Promise<boolean>;
-  logout: () => void;
-  register: (name: string, email: string, password: string) => Promise<boolean>;
+export interface AppState {
   users: User[];
   slots: Slot[];
   bookings: Booking[];
   tournaments: Tournament[];
-  notifications: AppNotification[];
-  addSlot: (slot: Omit<Slot, 'id' | 'bookedCount'>) => void;
-  updateSlot: (id: string, updates: Partial<Slot>) => void;
-  deleteSlot: (id: string) => void;
-  addBooking: (booking: Omit<Booking, 'id' | 'createdAt'>) => Booking;
-  cancelBooking: (id: string) => void;
-  addTournament: (tournament: Omit<Tournament, 'id' | 'createdAt' | 'participants' | 'matches'>) => void;
-  updateTournament: (id: string, updates: Partial<Tournament>) => void;
-  deleteTournament: (id: string) => void;
-  addNotification: (notification: Omit<AppNotification, 'id' | 'createdAt'>) => void;
-  updateUser: (id: string, updates: Partial<User>) => void;
-  updateSubscription: (userId: string, status: 'active' | 'inactive', tier: 'none' | 'basic' | 'premium', expiry?: string) => void;
-  toggleUserStatus: (id: string) => void;
+  notifications: Notification[];
+  currentUser: User | null;
 }

@@ -1,223 +1,173 @@
 import { useState, useCallback } from 'react';
-import type { User, Slot, Booking, Tournament, AppNotification, AppContextType, TournamentParticipant } from '@/types';
-import { loadData, saveData } from '@/lib/storage';
-import { generateId } from '@/lib/utils';
+import type { AppState, User, Slot, Booking, Tournament, Notification, TournamentParticipant } from '@/types';
+import { loadState, saveState } from '@/lib/storage';
 
-export function useStore(): AppContextType {
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    const id = loadData<string>('currentUserId', '');
-    if (!id) return null;
-    const users = loadData<User[]>('users', []);
-    return users.find(u => u.id === id) ?? null;
+const initialState: AppState = {
+  users: [],
+  slots: [],
+  bookings: [],
+  tournaments: [],
+  notifications: [],
+  currentUser: null,
+};
+
+export function useStore() {
+  const [state, setState] = useState<AppState>(() => {
+    const saved = loadState();
+    return saved ?? initialState;
   });
 
-  const [users, setUsers] = useState<User[]>(() => loadData<User[]>('users', []));
-  const [slots, setSlots] = useState<Slot[]>(() => loadData<Slot[]>('slots', []));
-  const [bookings, setBookings] = useState<Booking[]>(() => loadData<Booking[]>('bookings', []));
-  const [tournaments, setTournaments] = useState<Tournament[]>(() => loadData<Tournament[]>('tournaments', []));
-  const [notifications, setNotifications] = useState<AppNotification[]>(() => loadData<AppNotification[]>('notifications', []));
-
-  const persist = useCallback(<T>(key: string, value: T) => {
-    saveData(key, value);
+  const persist = useCallback((next: AppState) => {
+    setState(next);
+    saveState(next);
   }, []);
 
-  const login = useCallback(async (email: string, password: string): Promise<boolean> => {
-    const allUsers = loadData<User[]>('users', []);
-    const user = allUsers.find(u => u.email === email && u.password === password);
-    if (!user) return false;
-    setCurrentUser(user);
-    setUsers(allUsers);
-    saveData('currentUserId', user.id);
-    return true;
-  }, []);
+  // Auth
+  const login = useCallback(async (email: string, password: string): Promise<User | null> => {
+    const s = loadState() ?? initialState;
+    const user = s.users.find(u => u.email === email && u.password === password);
+    if (!user) return null;
+    const next = { ...s, currentUser: user };
+    persist(next);
+    return user;
+  }, [persist]);
 
   const logout = useCallback(() => {
-    setCurrentUser(null);
-    saveData('currentUserId', '');
-  }, []);
+    const s = loadState() ?? initialState;
+    persist({ ...s, currentUser: null });
+  }, [persist]);
 
-  const register = useCallback(async (name: string, email: string, password: string): Promise<boolean> => {
-    const allUsers = loadData<User[]>('users', []);
-    if (allUsers.find(u => u.email === email)) return false;
-    const newUser: User = {
-      id: generateId(),
-      name,
-      email,
-      password,
+  const register = useCallback(async (data: Omit<User, 'id' | 'createdAt' | 'role'>): Promise<User | null> => {
+    const s = loadState() ?? initialState;
+    if (s.users.find(u => u.email === data.email)) return null;
+    const user: User = {
+      ...data,
+      id: crypto.randomUUID(),
       role: 'member',
-      subscriptionTier: 'none',
-      subscriptionStatus: 'inactive',
       createdAt: new Date().toISOString(),
     };
-    const updated = [...allUsers, newUser];
-    setUsers(updated);
-    persist('users', updated);
-    setCurrentUser(newUser);
-    saveData('currentUserId', newUser.id);
-    return true;
+    persist({ ...s, users: [...s.users, user], currentUser: user });
+    return user;
   }, [persist]);
 
-  const addSlot = useCallback((slot: Omit<Slot, 'id' | 'bookedCount'>) => {
-    const newSlot: Slot = { ...slot, id: generateId(), bookedCount: 0 };
-    setSlots(prev => {
-      const updated = [...prev, newSlot];
-      persist('slots', updated);
-      return updated;
-    });
+  // Slots
+  const addSlot = useCallback((slot: Omit<Slot, 'id' | 'createdAt'>) => {
+    const s = loadState() ?? initialState;
+    const newSlot: Slot = { ...slot, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    persist({ ...s, slots: [...s.slots, newSlot] });
   }, [persist]);
 
-  const updateSlot = useCallback((id: string, updates: Partial<Slot>) => {
-    setSlots(prev => {
-      const updated = prev.map(s => s.id === id ? { ...s, ...updates } : s);
-      persist('slots', updated);
-      return updated;
-    });
+  const updateSlot = useCallback((id: string, patch: Partial<Slot>) => {
+    const s = loadState() ?? initialState;
+    persist({ ...s, slots: s.slots.map(sl => sl.id === id ? { ...sl, ...patch } : sl) });
   }, [persist]);
 
   const deleteSlot = useCallback((id: string) => {
-    setSlots(prev => {
-      const updated = prev.filter(s => s.id !== id);
-      persist('slots', updated);
-      return updated;
-    });
+    const s = loadState() ?? initialState;
+    persist({ ...s, slots: s.slots.filter(sl => sl.id !== id) });
   }, [persist]);
 
-  const addBooking = useCallback((booking: Omit<Booking, 'id' | 'createdAt'>): Booking => {
-    const newBooking: Booking = {
-      ...booking,
-      id: generateId(),
-      confirmationCode: Math.random().toString(36).substring(2, 8).toUpperCase(),
-      createdAt: new Date().toISOString(),
-    };
-    setBookings(prev => {
-      const updated = [...prev, newBooking];
-      persist('bookings', updated);
-      return updated;
-    });
-    setSlots(prev => {
-      const updated = prev.map(s =>
-        s.id === booking.slotId ? { ...s, bookedCount: s.bookedCount + 1 } : s
-      );
-      persist('slots', updated);
-      return updated;
-    });
-    return newBooking;
+  // Bookings
+  const addBooking = useCallback((booking: Omit<Booking, 'id' | 'createdAt'>) => {
+    const s = loadState() ?? initialState;
+    const newBooking: Booking = { ...booking, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    const slots = s.slots.map(sl => sl.id === booking.slotId ? { ...sl, status: 'booked' as const } : sl);
+    persist({ ...s, bookings: [...s.bookings, newBooking], slots });
   }, [persist]);
 
   const cancelBooking = useCallback((id: string) => {
-    setBookings(prev => {
-      const booking = prev.find(b => b.id === id);
-      const updated = prev.map(b => b.id === id ? { ...b, status: 'cancelled' as const } : b);
-      persist('bookings', updated);
-      if (booking) {
-        setSlots(sp => {
-          const updatedSlots = sp.map(s =>
-            s.id === booking.slotId ? { ...s, bookedCount: Math.max(0, s.bookedCount - 1) } : s
-          );
-          persist('slots', updatedSlots);
-          return updatedSlots;
-        });
-      }
-      return updated;
-    });
+    const s = loadState() ?? initialState;
+    const booking = s.bookings.find(b => b.id === id);
+    const slots = booking
+      ? s.slots.map(sl => sl.id === booking.slotId ? { ...sl, status: 'available' as const } : sl)
+      : s.slots;
+    const bookings = s.bookings.map(b => b.id === id ? { ...b, status: 'cancelled' as const } : b);
+    persist({ ...s, bookings, slots });
   }, [persist]);
 
+  const updateBookingStatus = useCallback((id: string, status: Booking['status']) => {
+    const s = loadState() ?? initialState;
+    persist({ ...s, bookings: s.bookings.map(b => b.id === id ? { ...b, status } : b) });
+  }, [persist]);
+
+  // Tournaments
   const addTournament = useCallback((tournament: Omit<Tournament, 'id' | 'createdAt' | 'participants' | 'matches'>) => {
-    const newTournament: Tournament = {
+    const s = loadState() ?? initialState;
+    const newT: Tournament = {
       ...tournament,
-      id: generateId(),
+      id: crypto.randomUUID(),
       participants: [],
       matches: [],
       createdAt: new Date().toISOString(),
     };
-    setTournaments(prev => {
-      const updated = [...prev, newTournament];
-      persist('tournaments', updated);
-      return updated;
-    });
+    persist({ ...s, tournaments: [...s.tournaments, newT] });
   }, [persist]);
 
-  const updateTournament = useCallback((id: string, updates: Partial<Tournament>) => {
-    setTournaments(prev => {
-      const updated = prev.map(t => t.id === id ? { ...t, ...updates } : t);
-      persist('tournaments', updated);
-      return updated;
-    });
+  const updateTournament = useCallback((id: string, patch: Partial<Tournament>) => {
+    const s = loadState() ?? initialState;
+    persist({ ...s, tournaments: s.tournaments.map(t => t.id === id ? { ...t, ...patch } : t) });
   }, [persist]);
 
   const deleteTournament = useCallback((id: string) => {
-    setTournaments(prev => {
-      const updated = prev.filter(t => t.id !== id);
-      persist('tournaments', updated);
-      return updated;
+    const s = loadState() ?? initialState;
+    persist({ ...s, tournaments: s.tournaments.filter(t => t.id !== id) });
+  }, [persist]);
+
+  const joinTournament = useCallback((tournamentId: string, participant: TournamentParticipant) => {
+    const s = loadState() ?? initialState;
+    persist({
+      ...s,
+      tournaments: s.tournaments.map(t =>
+        t.id === tournamentId
+          ? { ...t, participants: [...t.participants, participant] }
+          : t
+      ),
     });
   }, [persist]);
 
-  const addNotification = useCallback((notification: Omit<AppNotification, 'id' | 'createdAt'>) => {
-    const newNotification: AppNotification = {
-      ...notification,
-      id: generateId(),
-      createdAt: new Date().toISOString(),
-    };
-    setNotifications(prev => {
-      const updated = [...prev, newNotification];
-      persist('notifications', updated);
-      return updated;
-    });
+  // Notifications
+  const addNotification = useCallback((notification: Omit<Notification, 'id' | 'createdAt'>) => {
+    const s = loadState() ?? initialState;
+    const newN: Notification = { ...notification, id: crypto.randomUUID(), createdAt: new Date().toISOString() };
+    persist({ ...s, notifications: [...s.notifications, newN] });
   }, [persist]);
 
-  const updateUser = useCallback((id: string, updates: Partial<User>) => {
-    setUsers(prev => {
-      const updated = prev.map(u => u.id === id ? { ...u, ...updates } : u);
-      persist('users', updated);
-      return updated;
-    });
-    setCurrentUser(prev => prev && prev.id === id ? { ...prev, ...updates } : prev);
+  const deleteNotification = useCallback((id: string) => {
+    const s = loadState() ?? initialState;
+    persist({ ...s, notifications: s.notifications.filter(n => n.id !== id) });
   }, [persist]);
 
-  const updateSubscription = useCallback((userId: string, status: 'active' | 'inactive', tier: 'none' | 'basic' | 'premium', expiry?: string) => {
-    const updates: Partial<User> = { subscriptionStatus: status, subscriptionTier: tier, subscriptionExpiry: expiry };
-    setUsers(prev => {
-      const updated = prev.map(u => u.id === userId ? { ...u, ...updates } : u);
-      persist('users', updated);
-      return updated;
-    });
-    setCurrentUser(prev => prev && prev.id === userId ? { ...prev, ...updates } : prev);
+  // Users
+  const updateUser = useCallback((id: string, patch: Partial<User>) => {
+    const s = loadState() ?? initialState;
+    const users = s.users.map(u => u.id === id ? { ...u, ...patch } : u);
+    const currentUser = s.currentUser?.id === id ? { ...s.currentUser, ...patch } : s.currentUser;
+    persist({ ...s, users, currentUser });
   }, [persist]);
 
-  const toggleUserStatus = useCallback((id: string) => {
-    setUsers(prev => {
-      const updated = prev.map(u =>
-        u.id === id
-          ? { ...u, subscriptionStatus: u.subscriptionStatus === 'active' ? 'inactive' as const : 'active' as const }
-          : u
-      );
-      persist('users', updated);
-      return updated;
-    });
+  const deleteUser = useCallback((id: string) => {
+    const s = loadState() ?? initialState;
+    persist({ ...s, users: s.users.filter(u => u.id !== id) });
   }, [persist]);
 
   return {
-    currentUser,
+    ...state,
     login,
     logout,
     register,
-    users,
-    slots,
-    bookings,
-    tournaments,
-    notifications,
     addSlot,
     updateSlot,
     deleteSlot,
     addBooking,
     cancelBooking,
+    updateBookingStatus,
     addTournament,
     updateTournament,
     deleteTournament,
+    joinTournament,
     addNotification,
+    deleteNotification,
     updateUser,
-    updateSubscription,
-    toggleUserStatus,
+    deleteUser,
   };
 }
