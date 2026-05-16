@@ -1,39 +1,41 @@
 import { Link } from 'react-router-dom';
-import styles from './LandingPage.module.css';
 import Button from '@/components/ui/Button';
-
-const features = [
-  { icon: '🎳', title: 'Easy Booking', desc: 'Reserve your lane in seconds, anytime.' },
-  { icon: '🏆', title: 'Tournaments', desc: 'Join exciting bowling tournaments.' },
-  { icon: '💳', title: 'Memberships', desc: 'Flexible subscription plans for regulars.' },
-  { icon: '📊', title: 'Admin Tools', desc: 'Powerful management dashboard.' },
-];
+import styles from './LandingPage.module.css';
 
 export default function LandingPage() {
   return (
-    <div>
-      <section className={styles.hero}>
-        <div className={styles.logo}>🎳</div>
-        <h1 className={styles.title}>BowlPro Reservation</h1>
-        <p className={styles.subtitle}>The modern way to book bowling lanes, join tournaments, and manage your membership.</p>
-        <div className={styles.actions}>
-          <Link to="/login"><Button variant="accent" size="lg">Login</Button></Link>
-          <Link to="/register"><Button variant="ghost" size="lg">Register</Button></Link>
-          <Link to="/public-booking"><Button variant="secondary" size="lg">View Availability</Button></Link>
+    <div className={styles.container}>
+      <header className={styles.header}>
+        <div className={styles.logo}>
+          <span style={{ fontSize: '1.5rem', fontWeight: 800 }}>🎳 BowlPro</span>
         </div>
-      </section>
-      <section className={styles.features}>
-        <h2 className={styles.sectionTitle}>Why BowlPro?</h2>
-        <div className={styles.featuresGrid}>
-          {features.map(f => (
-            <div key={f.title} className={styles.featureCard}>
-              <div className={styles.featureIcon}>{f.icon}</div>
-              <div className={styles.featureTitle}>{f.title}</div>
-              <div className={styles.featureDesc}>{f.desc}</div>
-            </div>
-          ))}
+        <div className={styles.nav}>
+          <Link to="/login" className={styles.navLink}>Login</Link>
+          <Link to="/register">
+            <Button variant="primary" size="sm">Join Now</Button>
+          </Link>
         </div>
-      </section>
+      </header>
+
+      <main className={styles.hero}>
+        <h1 className={styles.title}>The Ultimate Bowling Experience</h1>
+        <p className={styles.subtitle}>
+          Book lanes in seconds, join competitive tournaments, and track your progress. 
+          Elevate your game with BowlPro.
+        </p>
+        <div className={styles.cta}>
+          <Link to="/public-booking">
+            <Button variant="accent" size="lg">Reserve a Lane</Button>
+          </Link>
+          <Link to="/register">
+            <Button variant="ghost" size="lg">Become a Member</Button>
+          </Link>
+        </div>
+      </main>
+
+      <footer className={styles.footer}>
+        <p>&copy; 2024 BowlPro Reservation Systems. All rights reserved.</p>
+      </footer>
     </div>
   );
 }

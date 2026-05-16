@@ -1,97 +1,63 @@
-export type UserRole = 'member' | 'admin';
-export type SubscriptionStatus = 'active' | 'expired' | 'none';
-export type SlotStatus = 'available' | 'booked_member' | 'booked_outsider' | 'tournament' | 'blocked';
-export type BookingStatus = 'confirmed' | 'cancelled';
-export type TournamentFormat = 'single-elimination' | 'round-robin' | 'custom';
-export type InviteStatus = 'pending' | 'accepted' | 'declined';
+export type UserRole = 'admin' | 'member';
 
-export type User = {
+export type SubscriptionType = 'none' | 'basic' | 'premium';
+
+export interface User {
   id: string;
   name: string;
   email: string;
-  password: string;
   role: UserRole;
-  subscriptionStatus: SubscriptionStatus;
-  subscriptionExpiry?: string;
-  phone?: string;
-  joinedAt: string;
-};
+  subscription: SubscriptionType;
+}
 
-export type Slot = {
-  id: string;
-  date: string;
-  startTime: string;
-  endTime: string;
-  lane: number;
-  status: SlotStatus;
-  bookedBy?: string;
-  notes?: string;
-};
+export type BookingStatus = 'confirmed' | 'cancelled' | 'completed';
 
-export type Booking = {
+export interface Booking {
   id: string;
-  slotId: string;
   userId: string;
   userName: string;
-  userEmail: string;
-  userPhone?: string;
+  lane: number;
+  laneNumber?: number;
   date: string;
   time: string;
-  lane: number;
+  startTime?: string;
+  endTime?: string;
   status: BookingStatus;
-  confirmationCode: string;
-  createdAt: string;
-  notes?: string;
-};
+  isGuest?: boolean;
+}
 
-export type Participant = {
+export type TournamentStatus = 'upcoming' | 'active' | 'draft' | 'completed';
+
+export interface Participant {
   userId: string;
-  status: InviteStatus;
-};
-
-export type Tournament = {
-  id: string;
   name: string;
-  description: string;
-  format: TournamentFormat;
-  startDate: string;
-  endDate: string;
-  participants: Participant[];
-  status: 'draft' | 'active' | 'completed';
-  prize?: string;
-};
+  registeredAt: string;
+}
 
-export type Notification = {
+export interface Tournament {
   id: string;
   title: string;
-  message: string;
-  type: 'info' | 'warning' | 'success' | 'danger';
-  targetUserId?: string;
-  targetRole: 'all' | UserRole;
-  createdAt: string;
-  read: boolean;
-};
+  description: string;
+  date: string;
+  time: string;
+  status: TournamentStatus;
+  maxParticipants: number;
+  participants: Participant[];
+  currentParticipants: number;
+  registeredUserIds: string[];
+}
 
-export type AppContextType = {
+export interface AppContextType {
   currentUser: User | null;
-  users: User[];
-  slots: Slot[];
+  setCurrentUser: (user: User | null) => void;
   bookings: Booking[];
+  setBookings: (bookings: Booking[]) => void;
   tournaments: Tournament[];
-  notifications: Notification[];
-  login: (email: string, password: string) => boolean;
+  setTournaments: (tournaments: Tournament[]) => void;
+  login: (email: string) => boolean;
   logout: () => void;
-  register: (name: string, email: string, password: string) => boolean;
   updateUser: (user: User) => void;
-  updateSlot: (id: string, updates: Partial<Slot>) => void;
-  generateDaySlots: (date: string) => void;
-  deleteSlot: (id: string) => void;
+  registerForTournament: (tournamentId: string) => void;
   addBooking: (booking: Omit<Booking, 'id'>) => void;
-  cancelBooking: (id: string) => void;
-  addTournament: (tournament: Omit<Tournament, 'id'>) => void;
-  updateTournament: (id: string, updates: Partial<Tournament>) => void;
-  deleteTournament: (id: string) => void;
-  handleInvite: (tournamentId: string, userId: string, status: InviteStatus) => void;
-  addNotification: (notification: Omit<Notification, 'id'>) => void;
-  markNotificationRead: (id: string) => void;
-};
+  cancelBooking: (bookingId: string) => void;
+}
