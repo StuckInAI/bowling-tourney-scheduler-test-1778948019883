@@ -10,7 +10,6 @@ import {
   LogOut,
   Menu,
   X,
-  Bowling,
 } from 'lucide-react';
 import { useAppContext } from '@/context/AppContext';
 import { getInitials } from '@/lib/utils';
@@ -43,8 +42,7 @@ export default function AdminLayout() {
 
       <aside className={`${styles.sidebar} ${styles.adminSidebar} ${sidebarOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.sidebarHeader}>
-          <Bowling size={24} className={styles.logo} />
-          <span className={styles.logoText}>BowlPro Admin</span>
+          <span className={styles.logoText}>🎳 BowlPro Admin</span>
           <button className={styles.closeBtn} onClick={() => setSidebarOpen(false)}>
             <X size={20} />
           </button>

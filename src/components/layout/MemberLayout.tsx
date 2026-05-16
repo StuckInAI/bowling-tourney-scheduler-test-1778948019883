@@ -10,7 +10,6 @@ import {
   LogOut,
   Menu,
   X,
-  Bowling,
 } from 'lucide-react';
 import { useAppContext } from '@/context/AppContext';
 import { getInitials } from '@/lib/utils';
@@ -37,16 +36,13 @@ export default function MemberLayout() {
 
   return (
     <div className={styles.shell}>
-      {/* Mobile overlay */}
       {sidebarOpen && (
         <div className={styles.overlay} onClick={() => setSidebarOpen(false)} />
       )}
 
-      {/* Sidebar */}
       <aside className={`${styles.sidebar} ${sidebarOpen ? styles.sidebarOpen : ''}`}>
         <div className={styles.sidebarHeader}>
-          <Bowling size={24} className={styles.logo} />
-          <span className={styles.logoText}>BowlPro</span>
+          <span className={styles.logoText}>🎳 BowlPro</span>
           <button className={styles.closeBtn} onClick={() => setSidebarOpen(false)}>
             <X size={20} />
           </button>
@@ -85,7 +81,6 @@ export default function MemberLayout() {
         </div>
       </aside>
 
-      {/* Main */}
       <div className={styles.main}>
         <header className={styles.topbar}>
           <button className={styles.menuBtn} onClick={() => setSidebarOpen(true)}>

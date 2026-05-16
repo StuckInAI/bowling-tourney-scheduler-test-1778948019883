@@ -1,107 +1,69 @@
 import { useNavigate } from 'react-router-dom';
 import {
-  Bowling,
   Trophy,
-  Calendar,
+  CalendarDays,
   Users,
-  ArrowRight,
-  Clock,
-  Shield,
   Star,
+  ArrowRight,
+  CheckCircle,
 } from 'lucide-react';
-import { useAppContext } from '@/context/AppContext';
+import Button from '@/components/ui/Button';
 import styles from './LandingPage.module.css';
 
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { currentUser } = useAppContext();
-
-  const handleCTA = () => {
-    if (currentUser) {
-      if (currentUser.role === 'admin') navigate('/admin/overview');
-      else navigate('/member/dashboard');
-    } else {
-      navigate('/register');
-    }
-  };
 
   return (
     <div className={styles.page}>
-      {/* Navbar */}
-      <nav className={styles.nav}>
-        <div className={styles.navBrand}>
-          <Bowling size={28} />
-          <span>BowlPro</span>
-        </div>
-        <div className={styles.navLinks}>
-          <button onClick={() => navigate('/public-booking')} className={styles.navLink}>
-            Book a Lane
-          </button>
-          {currentUser ? (
-            <button
-              onClick={() =>
-                currentUser.role === 'admin'
-                  ? navigate('/admin/overview')
-                  : navigate('/member/dashboard')
-              }
-              className={styles.navBtn}
-            >
-              Dashboard
+      {/* Header */}
+      <header className={styles.header}>
+        <div className={styles.headerInner}>
+          <div className={styles.logo}>
+            <span className={styles.logoIcon}>🎳</span>
+            <span className={styles.logoText}>BowlPro</span>
+          </div>
+          <nav className={styles.headerNav}>
+            <button className={styles.navLink} onClick={() => navigate('/public-booking')}>
+              Book a Lane
             </button>
-          ) : (
-            <>
-              <button onClick={() => navigate('/login')} className={styles.navLink}>
-                Login
-              </button>
-              <button onClick={() => navigate('/register')} className={styles.navBtn}>
-                Join Now
-              </button>
-            </>
-          )}
+            <Button variant="ghost" size="sm" onClick={() => navigate('/login')}>
+              Sign In
+            </Button>
+            <Button variant="primary" size="sm" onClick={() => navigate('/register')}>
+              Join Now
+            </Button>
+          </nav>
         </div>
-      </nav>
+      </header>
 
       {/* Hero */}
       <section className={styles.hero}>
         <div className={styles.heroContent}>
-          <div className={styles.heroBadge}>
-            <Star size={14} />
-            Premium Bowling Experience
-          </div>
+          <div className={styles.heroBadge}>🎳 Premium Bowling Experience</div>
           <h1 className={styles.heroTitle}>
-            Bowl. Compete. <span className={styles.accent}>Champion.</span>
+            Strike Your
+            <span className={styles.heroAccent}> Perfect Game</span>
           </h1>
-          <p className={styles.heroSub}>
-            16 state-of-the-art lanes, exclusive member tournaments, and easy slot booking.
-            Join our community and take your game to the next level.
+          <p className={styles.heroSubtitle}>
+            Join BowlPro for exclusive lane bookings, tournaments, and a community
+            of bowling enthusiasts. Reserve your lane in seconds.
           </p>
-          <div className={styles.heroBtns}>
-            <button onClick={handleCTA} className={styles.heroBtn}>
-              {currentUser ? 'Go to Dashboard' : 'Become a Member'}
+          <div className={styles.heroCta}>
+            <Button size="lg" onClick={() => navigate('/register')}>
+              Get Started Free
               <ArrowRight size={18} />
-            </button>
-            <button
-              onClick={() => navigate('/public-booking')}
-              className={styles.heroBtnGhost}
-            >
+            </Button>
+            <Button variant="ghost" size="lg" onClick={() => navigate('/public-booking')}>
               Book as Guest
-            </button>
+            </Button>
           </div>
         </div>
         <div className={styles.heroVisual}>
           <div className={styles.heroCard}>
-            <Bowling size={64} className={styles.heroBowling} />
-            <div className={styles.heroStat}>
-              <span className={styles.heroStatNum}>16</span>
-              <span className={styles.heroStatLabel}>Bowling Lanes</span>
-            </div>
-            <div className={styles.heroStat}>
-              <span className={styles.heroStatNum}>1hr</span>
-              <span className={styles.heroStatLabel}>Per Slot</span>
-            </div>
-            <div className={styles.heroStat}>
-              <span className={styles.heroStatNum}>3+</span>
-              <span className={styles.heroStatLabel}>Tournament Formats</span>
+            <div className={styles.heroCardIcon}>🎳</div>
+            <div className={styles.heroCardText}>
+              <span className={styles.heroCardTitle}>Lane Available</span>
+              <span className={styles.heroCardSub}>Tonight at 7:00 PM</span>
             </div>
           </div>
         </div>
@@ -109,76 +71,81 @@ export default function LandingPage() {
 
       {/* Features */}
       <section className={styles.features}>
-        <h2 className={styles.featuresTitle}>Everything You Need</h2>
-        <div className={styles.featuresGrid}>
-          <div className={styles.featureCard}>
-            <div className={styles.featureIcon} style={{ background: '#dbeafe', color: '#1d4ed8' }}>
-              <Calendar size={24} />
+        <div className={styles.sectionInner}>
+          <h2 className={styles.sectionTitle}>Everything You Need</h2>
+          <p className={styles.sectionSubtitle}>
+            From casual games to competitive tournaments, BowlPro has it all.
+          </p>
+          <div className={styles.featuresGrid}>
+            <div className={styles.featureCard}>
+              <CalendarDays size={32} className={styles.featureIcon} />
+              <h3>Easy Booking</h3>
+              <p>Reserve lanes instantly with our intuitive booking system. View real-time availability.</p>
             </div>
-            <h3>Easy Slot Booking</h3>
-            <p>Book 1-hour slots across all 16 lanes. Members get priority, while remaining slots open to the public 24 hours before.</p>
-          </div>
-          <div className={styles.featureCard}>
-            <div className={styles.featureIcon} style={{ background: '#fae8ff', color: '#7e22ce' }}>
-              <Trophy size={24} />
+            <div className={styles.featureCard}>
+              <Trophy size={32} className={styles.featureIcon} />
+              <h3>Tournaments</h3>
+              <p>Join exciting tournaments and compete with fellow bowling enthusiasts.</p>
             </div>
-            <h3>Member Tournaments</h3>
-            <p>Participate in Single Elimination, Round-Robin, and custom format tournaments exclusively for yearly members.</p>
-          </div>
-          <div className={styles.featureCard}>
-            <div className={styles.featureIcon} style={{ background: '#dcfce7', color: '#15803d' }}>
-              <Shield size={24} />
+            <div className={styles.featureCard}>
+              <Users size={32} className={styles.featureIcon} />
+              <h3>Member Benefits</h3>
+              <p>Exclusive discounts, priority booking, and access to member-only events.</p>
             </div>
-            <h3>Yearly Membership</h3>
-            <p>Subscribe yearly for $299 and unlock exclusive tournament access, priority bookings, and member-only perks.</p>
-          </div>
-          <div className={styles.featureCard}>
-            <div className={styles.featureIcon} style={{ background: '#fef3c7', color: '#b45309' }}>
-              <Clock size={24} />
+            <div className={styles.featureCard}>
+              <Star size={32} className={styles.featureIcon} />
+              <h3>Premium Lanes</h3>
+              <p>State-of-the-art lanes with automatic scoring and comfortable seating.</p>
             </div>
-            <h3>Public Walk-ins</h3>
-            <p>Any unbooked slot in the next 24 hours is publicly available. No account needed — just your name and contact info.</p>
-          </div>
-          <div className={styles.featureCard}>
-            <div className={styles.featureIcon} style={{ background: '#fee2e2', color: '#b91c1c' }}>
-              <Users size={24} />
-            </div>
-            <h3>Member Portal</h3>
-            <p>Full self-service dashboard — view upcoming bookings, tournament brackets, match schedules, and subscription status.</p>
-          </div>
-          <div className={styles.featureCard}>
-            <div className={styles.featureIcon} style={{ background: '#f1f5f9', color: '#475569' }}>
-              <Bowling size={24} />
-            </div>
-            <h3>Admin Control</h3>
-            <p>Complete admin panel for slot management, tournament creation, member administration, and booking oversight.</p>
           </div>
         </div>
       </section>
 
-      {/* CTA */}
-      <section className={styles.ctaSection}>
-        <h2>Ready to Roll?</h2>
-        <p>Join today and get access to exclusive tournaments and priority lane booking.</p>
-        <div className={styles.ctaBtns}>
-          <button onClick={handleCTA} className={styles.heroBtn}>
-            Get Started — $299/year
-            <ArrowRight size={18} />
-          </button>
-          <button onClick={() => navigate('/public-booking')} className={styles.heroBtnGhost} style={{ borderColor: 'rgba(255,255,255,0.4)', color: 'white' }}>
-            Book as Guest
-          </button>
+      {/* Pricing */}
+      <section className={styles.pricing}>
+        <div className={styles.sectionInner}>
+          <h2 className={styles.sectionTitle}>Simple Pricing</h2>
+          <p className={styles.sectionSubtitle}>Choose the plan that works for you.</p>
+          <div className={styles.pricingGrid}>
+            <div className={styles.pricingCard}>
+              <h3>Guest</h3>
+              <div className={styles.price}><span className={styles.priceAmount}>$25</span>/hour</div>
+              <ul className={styles.priceFeatures}>
+                <li><CheckCircle size={16} /> Lane booking</li>
+                <li><CheckCircle size={16} /> Equipment rental</li>
+                <li><CheckCircle size={16} /> Shoe rental</li>
+              </ul>
+              <Button variant="ghost" fullWidth onClick={() => navigate('/public-booking')}>
+                Book Now
+              </Button>
+            </div>
+            <div className={`${styles.pricingCard} ${styles.pricingCardFeatured}`}>
+              <div className={styles.pricingBadge}>Most Popular</div>
+              <h3>Member</h3>
+              <div className={styles.price}><span className={styles.priceAmount}>$49</span>/month</div>
+              <ul className={styles.priceFeatures}>
+                <li><CheckCircle size={16} /> Unlimited bookings</li>
+                <li><CheckCircle size={16} /> 20% discount on extras</li>
+                <li><CheckCircle size={16} /> Tournament access</li>
+                <li><CheckCircle size={16} /> Priority lanes</li>
+              </ul>
+              <Button fullWidth onClick={() => navigate('/register')}>
+                Join Now
+              </Button>
+            </div>
+          </div>
         </div>
-        <p className={styles.ctaNote}>Demo credentials: admin@bowlpro.com / admin123 | alice@example.com / password123</p>
       </section>
 
       {/* Footer */}
       <footer className={styles.footer}>
-        <div className={styles.footerBrand}>
-          <Bowling size={20} />
-          <span>BowlPro</span>
+        <div className={styles.footerInner}>
+          <div className={styles.footerLogo}>
+            <span>🎳</span>
+            <span>BowlPro</span>
+          </div>
+          <p className={styles.footerText}>© 2024 BowlPro. All rights reserved.</p>
         </div>
-        <p>© 2025 BowlPro. All rights reserved.</p>
       </footer>
     </div>
   );
