@@ -1,281 +1,230 @@
 import { useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
+import type { Tournament, TournamentFormat, TournamentStatus } from '@/types';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 import Badge from '@/components/ui/Badge';
 import Modal from '@/components/ui/Modal';
-import { formatDate } from '@/lib/utils';
-import type { Tournament, TournamentFormat, TournamentStatus } from '@/types';
+import Input from '@/components/ui/Input';
+import Select from '@/components/ui/Select';
+
+const FORMAT_OPTIONS: { value: TournamentFormat; label: string }[] = [
+  { value: 'single_elimination', label: 'Single Elimination' },
+  { value: 'double_elimination', label: 'Double Elimination' },
+  { value: 'round_robin', label: 'Round Robin' },
+  { value: 'league', label: 'League' },
+];
+
+const STATUS_OPTIONS: { value: TournamentStatus; label: string }[] = [
+  { value: 'draft', label: 'Draft' },
+  { value: 'upcoming', label: 'Upcoming' },
+  { value: 'ongoing', label: 'Ongoing' },
+  { value: 'completed', label: 'Completed' },
+  { value: 'cancelled', label: 'Cancelled' },
+];
 
 const emptyForm = {
   name: '',
   description: '',
-  format: 'single-elimination' as TournamentFormat,
+  format: 'single_elimination' as TournamentFormat,
   startDate: '',
   endDate: '',
-  prize: '',
-  maxParticipants: 8,
+  maxParticipants: '16',
+  entryFee: '0',
+  prizePool: '',
+  status: 'draft' as TournamentStatus,
 };
 
 export default function AdminTournaments() {
   const { tournaments, users, addTournament, updateTournament, deleteTournament } = useAppContext();
-  const [showModal, setShowModal] = useState(false);
-  const [editTournament, setEditTournament] = useState<Tournament | null>(null);
-  const [form, setForm] = useState(emptyForm);
-  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [modal, setModal] = useState<{ mode: 'create' | 'edit'; tournament?: Tournament } | null>(null);
   const [inviteModal, setInviteModal] = useState<Tournament | null>(null);
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+  const [form, setForm] = useState(emptyForm);
 
   const members = users.filter(u => u.role === 'member');
 
-  const openCreate = () => {
-    setEditTournament(null);
-    setForm(emptyForm);
-    setSelectedMembers([]);
-    setShowModal(true);
+  const handleOpen = (mode: 'create' | 'edit', t?: Tournament) => {
+    if (mode === 'edit' && t) {
+      setForm({
+        name: t.name,
+        description: t.description,
+        format: t.format,
+        startDate: t.startDate,
+        endDate: t.endDate,
+        maxParticipants: String(t.maxParticipants),
+        entryFee: String(t.entryFee),
+        prizePool: t.prizePool,
+        status: t.status,
+      });
+    } else {
+      setForm(emptyForm);
+    }
+    setModal({ mode, tournament: t });
   };
 
-  const openEdit = (t: Tournament) => {
-    setEditTournament(t);
-    setForm({
-      name: t.name,
-      description: t.description,
-      format: t.format,
-      startDate: t.startDate,
-      endDate: t.endDate,
-      prize: t.prize || '',
-      maxParticipants: t.maxParticipants || 8,
-    });
+  const handleOpenInvite = (t: Tournament) => {
+    setInviteModal(t);
     setSelectedMembers(t.participants.map(p => p.userId));
-    setShowModal(true);
   };
 
   const handleSave = () => {
-    if (!form.name || !form.startDate || !form.endDate) return;
-    const participants = selectedMembers.map(uid => ({ userId: uid, status: 'pending' as const }));
-    if (editTournament) {
+    if (modal?.mode === 'edit' && modal.tournament) {
       updateTournament({
-        ...editTournament,
-        ...form,
-        participants,
+        ...modal.tournament,
+        name: form.name,
+        description: form.description,
+        format: form.format,
+        startDate: form.startDate,
+        endDate: form.endDate,
+        maxParticipants: Number(form.maxParticipants),
+        entryFee: Number(form.entryFee),
+        prizePool: form.prizePool,
+        status: form.status,
       });
     } else {
-      addTournament({
-        ...form,
-        participants,
-        status: 'draft',
-      });
+      const newTournament: Tournament = {
+        id: `tournament-${crypto.randomUUID()}`,
+        name: form.name,
+        description: form.description,
+        format: form.format,
+        startDate: form.startDate,
+        endDate: form.endDate,
+        maxParticipants: Number(form.maxParticipants),
+        participants: [],
+        entryFee: Number(form.entryFee),
+        prizePool: form.prizePool,
+        status: form.status,
+        createdAt: new Date().toISOString(),
+      };
+      addTournament(newTournament);
     }
-    setShowModal(false);
+    setModal(null);
   };
 
-  const handleStatusChange = (t: Tournament, status: TournamentStatus) => {
-    updateTournament({ ...t, status });
+  const handleSaveInvites = () => {
+    if (!inviteModal) return;
+    const participants = selectedMembers.map(id => {
+      const user = users.find(u => u.id === id);
+      return {
+        userId: id,
+        userName: user?.name ?? '',
+        userEmail: user?.email ?? '',
+        registeredAt: new Date().toISOString(),
+      };
+    });
+    updateTournament({ ...inviteModal, participants });
+    setInviteModal(null);
   };
 
-  const toggleMember = (uid: string) => {
-    setSelectedMembers(prev =>
-      prev.includes(uid) ? prev.filter(id => id !== uid) : [...prev, uid]
-    );
-  };
-
-  const formatVariant = (format: TournamentFormat) => {
-    switch (format) {
-      case 'single-elimination': return 'info';
-      case 'round-robin': return 'success';
-      case 'custom': return 'purple';
-      default: return 'neutral';
-    }
-  };
-
-  const statusVariant = (status: TournamentStatus) => {
-    switch (status) {
-      case 'active': return 'success';
-      case 'draft': return 'warning';
-      case 'completed': return 'neutral';
-      default: return 'neutral';
-    }
+  const statusVariant = (s: TournamentStatus) => {
+    if (s === 'upcoming') return 'info';
+    if (s === 'ongoing') return 'success';
+    if (s === 'completed') return 'neutral';
+    if (s === 'cancelled') return 'danger';
+    if (s === 'draft') return 'warning';
+    return 'neutral';
   };
 
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center flex-wrap gap-4">
-        <div>
-          <h1 className="text-2xl font-bold">Tournament Management</h1>
-          <p className="text-slate-500">{tournaments.length} tournaments.</p>
-        </div>
-        <Button onClick={openCreate}>+ New Tournament</Button>
+    <div className="space-y-4">
+      <div className="flex justify-between items-center">
+        <h1 className="text-2xl font-bold">Tournaments</h1>
+        <Button onClick={() => handleOpen('create')}>+ Create Tournament</Button>
       </div>
 
-      {tournaments.length === 0 ? (
-        <Card className="text-center py-12">
-          <div className="text-4xl mb-4">🏆</div>
-          <p className="text-slate-500 mb-4">No tournaments yet.</p>
-          <Button onClick={openCreate}>Create First Tournament</Button>
-        </Card>
-      ) : (
-        <div className="flex flex-col gap-4">
-          {tournaments.map(t => (
-            <Card key={t.id}>
-              <div className="flex justify-between items-start flex-wrap gap-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-3 mb-1 flex-wrap">
-                    <h3 className="font-bold text-lg">{t.name}</h3>
-                    <Badge variant={statusVariant(t.status)}>{t.status}</Badge>
-                    <Badge variant={formatVariant(t.format)}>{t.format}</Badge>
-                  </div>
-                  <p className="text-sm text-slate-500 mb-2">{t.description}</p>
-                  <div className="flex flex-wrap gap-4 text-sm text-slate-600">
-                    <span>📅 {formatDate(new Date(t.startDate + 'T12:00:00'))} – {formatDate(new Date(t.endDate + 'T12:00:00'))}</span>
-                    <span>👥 {t.participants.length} invited</span>
-                    <span>✅ {t.participants.filter(p => p.status === 'accepted').length} accepted</span>
-                    {t.prize && <span>🏆 {t.prize}</span>}
-                  </div>
+      <div className="grid gap-3">
+        {tournaments.map(t => (
+          <Card key={t.id}>
+            <div className="flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <h3 className="font-semibold text-lg">{t.name}</h3>
+                  <Badge variant={statusVariant(t.status)}>{t.status}</Badge>
                 </div>
-                <div className="flex gap-2 flex-wrap">
-                  <Button size="sm" variant="secondary" onClick={() => openEdit(t)}>Edit</Button>
-                  <Button size="sm" variant="secondary" onClick={() => setInviteModal(t)}>Invites</Button>
-                  {t.status === 'draft' && (
-                    <Button size="sm" onClick={() => handleStatusChange(t, 'active')}>Activate</Button>
-                  )}
-                  {t.status === 'active' && (
-                    <Button size="sm" variant="secondary" onClick={() => handleStatusChange(t, 'completed')}>Complete</Button>
-                  )}
-                  <Button size="sm" variant="danger" onClick={() => deleteTournament(t.id)}>Delete</Button>
-                </div>
+                <p className="text-sm text-slate-500">{t.description}</p>
+                <p className="text-xs text-slate-400 mt-1">{t.startDate} → {t.endDate} | {t.participants.length}/{t.maxParticipants} participants</p>
               </div>
-            </Card>
-          ))}
-        </div>
-      )}
+              <div className="flex gap-2 flex-wrap">
+                <Button size="sm" variant="secondary" onClick={() => handleOpenInvite(t)}>Manage Participants</Button>
+                <Button size="sm" variant="secondary" onClick={() => handleOpen('edit', t)}>Edit</Button>
+                <Button size="sm" variant="danger" onClick={() => deleteTournament(t.id)}>Delete</Button>
+              </div>
+            </div>
+          </Card>
+        ))}
+      </div>
 
       {/* Create/Edit Modal */}
-      <Modal
-        isOpen={showModal}
-        onClose={() => setShowModal(false)}
-        title={editTournament ? 'Edit Tournament' : 'Create Tournament'}
-      >
-        <div className="p-6 flex flex-col gap-4">
-          <div>
-            <label className="block text-sm font-medium mb-1">Tournament Name</label>
-            <input
-              className="w-full border rounded-md px-3 py-2 text-sm"
-              value={form.name}
-              onChange={e => setForm({ ...form, name: e.target.value })}
-              placeholder="Summer Invitational"
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Description</label>
-            <textarea
-              className="w-full border rounded-md px-3 py-2 text-sm"
-              rows={2}
-              value={form.description}
-              onChange={e => setForm({ ...form, description: e.target.value })}
-            />
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-1">Format</label>
-            <select
-              className="w-full border rounded-md px-3 py-2 text-sm bg-white"
-              value={form.format}
-              onChange={e => setForm({ ...form, format: e.target.value as TournamentFormat })}
-            >
-              <option value="single-elimination">Single Elimination</option>
-              <option value="round-robin">Round Robin</option>
-              <option value="custom">Custom</option>
-            </select>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">Start Date</label>
-              <input
-                type="date"
-                className="w-full border rounded-md px-3 py-2 text-sm"
-                value={form.startDate}
-                onChange={e => setForm({ ...form, startDate: e.target.value })}
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">End Date</label>
-              <input
-                type="date"
-                className="w-full border rounded-md px-3 py-2 text-sm"
-                value={form.endDate}
-                onChange={e => setForm({ ...form, endDate: e.target.value })}
-              />
-            </div>
-          </div>
-          <div className="grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium mb-1">Prize</label>
-              <input
-                className="w-full border rounded-md px-3 py-2 text-sm"
-                value={form.prize}
-                onChange={e => setForm({ ...form, prize: e.target.value })}
-                placeholder="$500"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium mb-1">Max Participants</label>
-              <input
-                type="number"
-                className="w-full border rounded-md px-3 py-2 text-sm"
-                value={form.maxParticipants}
-                onChange={e => setForm({ ...form, maxParticipants: Number(e.target.value) })}
-              />
-            </div>
-          </div>
-          <div>
-            <label className="block text-sm font-medium mb-2">Invite Members</label>
-            <div className="border rounded-md max-h-40 overflow-y-auto">
-              {members.map(m => (
-                <label key={m.id} className="flex items-center gap-2 px-3 py-2 hover:bg-slate-50 cursor-pointer">
-                  <input
-                    type="checkbox"
-                    checked={selectedMembers.includes(m.id)}
-                    onChange={() => toggleMember(m.id)}
-                  />
-                  <span className="text-sm">{m.name} ({m.email})</span>
-                </label>
-              ))}
-            </div>
-          </div>
+      <Modal isOpen={!!modal} onClose={() => setModal(null)} title={modal?.mode === 'create' ? 'Create Tournament' : 'Edit Tournament'}>
+        <div className="p-6 space-y-4">
+          <Input label="Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
+          <Input label="Description" value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))} />
+          <Select
+            label="Format"
+            value={form.format}
+            options={FORMAT_OPTIONS}
+            onChange={e => setForm(f => ({ ...f, format: e.target.value as TournamentFormat }))}
+          />
+          <Select
+            label="Status"
+            value={form.status}
+            options={STATUS_OPTIONS}
+            onChange={e => setForm(f => ({ ...f, status: e.target.value as TournamentStatus }))}
+          />
+          <Input label="Start Date" type="date" value={form.startDate} onChange={e => setForm(f => ({ ...f, startDate: e.target.value }))} />
+          <Input label="End Date" type="date" value={form.endDate} onChange={e => setForm(f => ({ ...f, endDate: e.target.value }))} />
+          <Input label="Max Participants" type="number" value={form.maxParticipants} onChange={e => setForm(f => ({ ...f, maxParticipants: e.target.value }))} />
+          <Input label="Entry Fee ($)" type="number" value={form.entryFee} onChange={e => setForm(f => ({ ...f, entryFee: e.target.value }))} />
+          <Input label="Prize Pool" value={form.prizePool} onChange={e => setForm(f => ({ ...f, prizePool: e.target.value }))} />
           <div className="flex justify-end gap-2">
-            <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button onClick={handleSave}>{editTournament ? 'Save Changes' : 'Create Tournament'}</Button>
+            <Button variant="secondary" onClick={() => setModal(null)}>Cancel</Button>
+            <Button onClick={handleSave}>Save</Button>
           </div>
         </div>
       </Modal>
 
-      {/* Invite Status Modal */}
-      <Modal
-        isOpen={!!inviteModal}
-        onClose={() => setInviteModal(null)}
-        title={`Invites: ${inviteModal?.name}`}
-      >
-        <div className="p-6">
+      {/* Invite Modal */}
+      <Modal isOpen={!!inviteModal} onClose={() => setInviteModal(null)} title="Manage Participants">
+        <div className="p-6 space-y-3">
           {inviteModal?.participants.length === 0 ? (
-            <p className="text-slate-500">No members invited yet.</p>
+            <p className="text-slate-500 text-sm">No participants yet.</p>
           ) : (
-            <div className="flex flex-col gap-2">
+            <div className="space-y-2">
               {inviteModal?.participants.map(p => {
-                const user = users.find(u => u.id === p.userId);
+                const checked = selectedMembers.includes(p.userId);
                 return (
-                  <div key={p.userId} className="flex items-center justify-between p-2 bg-slate-50 rounded">
-                    <span className="text-sm font-medium">{user?.name || p.userId}</span>
-                    <Badge variant={
-                      p.status === 'accepted' ? 'success' :
-                      p.status === 'declined' ? 'danger' : 'warning'
-                    }>
-                      {p.status}
-                    </Badge>
-                  </div>
+                  <label key={p.userId} className="flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={e => {
+                        if (e.target.checked) setSelectedMembers(prev => [...prev, p.userId]);
+                        else setSelectedMembers(prev => prev.filter(id => id !== p.userId));
+                      }}
+                    />
+                    {p.userName} ({p.userEmail})
+                  </label>
                 );
               })}
             </div>
           )}
-          <div className="mt-4 flex justify-end">
-            <Button variant="secondary" onClick={() => setInviteModal(null)}>Close</Button>
+          <div className="border-t pt-3">
+            <p className="text-sm font-medium mb-2">Add from members:</p>
+            {members.filter(m => !selectedMembers.includes(m.id)).map(m => (
+              <label key={m.id} className="flex items-center gap-2 text-sm mb-1">
+                <input
+                  type="checkbox"
+                  checked={false}
+                  onChange={() => setSelectedMembers(prev => [...prev, m.id])}
+                />
+                {m.name} ({m.email})
+              </label>
+            ))}
+          </div>
+          <div className="flex justify-end gap-2 pt-2">
+            <Button variant="secondary" onClick={() => setInviteModal(null)}>Cancel</Button>
+            <Button onClick={handleSaveInvites}>Save</Button>
           </div>
         </div>
       </Modal>

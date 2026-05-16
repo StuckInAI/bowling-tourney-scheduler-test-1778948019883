@@ -1,110 +1,87 @@
 import { useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
+import type { Slot } from '@/types';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
+import Badge from '@/components/ui/Badge';
+import Modal from '@/components/ui/Modal';
 import SlotGrid from '@/components/ui/SlotGrid';
-import { formatDate, generateConfirmationCode } from '@/lib/utils';
-import { Link } from 'react-router-dom';
-import type { Slot } from '@/types';
+import { formatDate } from '@/lib/utils';
 
 export default function MemberBookingPage() {
   const { currentUser, slots, addBooking, updateSlot } = useAppContext();
-  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
-  const [success, setSuccess] = useState(false);
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [successMsg, setSuccessMsg] = useState('');
 
-  const dateSlots = slots.filter(s => s.date === selectedDate);
-  const isSubscribed = currentUser?.subscriptionStatus === 'active';
-
-  const handleSlotClick = (slot: Slot) => {
-    if (slot.status === 'available') {
-      setSelectedSlot(slot);
-    }
+  const handleSelectSlot = (slot: Slot) => {
+    setSelectedSlot(slot);
+    setConfirmOpen(true);
   };
 
-  const handleBook = () => {
-    if (!selectedSlot || !currentUser || !isSubscribed) return;
+  const handleConfirm = () => {
+    if (!selectedSlot || !currentUser) return;
 
-    addBooking({
-      slotId: selectedSlot.id,
+    const booking = {
+      id: `booking-${crypto.randomUUID()}`,
       userId: currentUser.id,
       userName: currentUser.name,
       userEmail: currentUser.email,
+      slotId: selectedSlot.id,
       date: selectedSlot.date,
-      time: selectedSlot.startTime,
       startTime: selectedSlot.startTime,
       endTime: selectedSlot.endTime,
       lane: selectedSlot.lane,
-      status: 'confirmed',
-      confirmationCode: generateConfirmationCode(),
-      type: 'member',
+      type: 'member' as const,
+      status: 'confirmed' as const,
       createdAt: new Date().toISOString(),
+    };
+
+    addBooking(booking);
+
+    const newCount = selectedSlot.bookedCount + 1;
+    updateSlot({
+      ...selectedSlot,
+      bookedCount: newCount,
+      status: newCount >= selectedSlot.capacity ? 'full' : 'booked_member',
     });
 
-    updateSlot(selectedSlot.id, { status: 'booked_member', bookedBy: currentUser.id });
-    setSuccess(true);
+    setConfirmOpen(false);
+    setSuccessMsg(`Booking confirmed for Lane ${selectedSlot.lane} on ${formatDate(new Date(selectedSlot.date + 'T12:00:00'))} at ${selectedSlot.startTime}`);
+    setSelectedSlot(null);
   };
 
-  if (!isSubscribed) {
-    return (
-      <Card className="text-center p-12">
-        <h2 className="text-xl font-bold mb-4">Subscription Required</h2>
-        <p className="text-slate-600 mb-6">You need an active yearly subscription to book lanes online.</p>
-        <Link to="/member/subscription">
-          <Button>View Subscription Plans</Button>
-        </Link>
-      </Card>
-    );
-  }
-
-  if (success && selectedSlot) {
-    return (
-      <Card className="text-center p-12">
-        <div className="text-5xl mb-4">✅</div>
-        <h2 className="text-2xl font-bold mb-2">Lane Reserved!</h2>
-        <p className="text-slate-600 mb-6">
-          Lane {selectedSlot.lane} on {formatDate(new Date(selectedSlot.date + 'T12:00:00'))} at {selectedSlot.startTime}
-        </p>
-        <Button onClick={() => { setSuccess(false); setSelectedSlot(null); }}>Book Another</Button>
-      </Card>
-    );
-  }
-
   return (
-    <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center flex-wrap gap-4">
-        <h1 className="text-2xl font-bold">Book a Lane</h1>
-        <input
-          type="date"
-          className="border rounded-md px-3 py-2 text-sm"
-          value={selectedDate}
-          onChange={e => setSelectedDate(e.target.value)}
-        />
-      </div>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold">Book a Lane</h1>
 
-      {dateSlots.length === 0 ? (
-        <Card>
-          <p className="text-center text-slate-500 py-8">No slots available for this date. Please try another date.</p>
-        </Card>
-      ) : (
-        <SlotGrid
-          slots={dateSlots}
-          onSlotClick={handleSlotClick}
-          selectedSlotId={selectedSlot?.id}
-        />
+      {successMsg && (
+        <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-800">
+          {successMsg}
+        </div>
       )}
 
-      {selectedSlot && (
-        <Card className="flex justify-between items-center flex-wrap gap-4">
-          <div>
-            <h3 className="font-bold">Selected: Lane {selectedSlot.lane}</h3>
-            <p className="text-sm text-slate-500">
-              {formatDate(new Date(selectedSlot.date + 'T12:00:00'))} at {selectedSlot.startTime} – {selectedSlot.endTime}
-            </p>
-          </div>
-          <Button onClick={handleBook}>Confirm Booking</Button>
-        </Card>
-      )}
+      <SlotGrid slots={slots} onSelectSlot={handleSelectSlot} />
+
+      <Modal isOpen={confirmOpen} onClose={() => setConfirmOpen(false)} title="Confirm Booking">
+        <div className="p-6 space-y-4">
+          {selectedSlot && (
+            <>
+              <Card className="bg-slate-50">
+                <h3 className="font-bold">Selected: Lane {selectedSlot.lane}</h3>
+                <p className="text-sm text-slate-600 mt-1">
+                  {formatDate(new Date(selectedSlot.date + 'T12:00:00'))} · {selectedSlot.startTime} – {selectedSlot.endTime}
+                </p>
+                <p className="text-sm font-medium mt-2">Price: ${selectedSlot.price}</p>
+              </Card>
+              <div className="flex justify-end gap-2">
+                <Button variant="secondary" onClick={() => setConfirmOpen(false)}>Cancel</Button>
+                <Button onClick={handleConfirm}>Confirm Booking</Button>
+              </div>
+            </>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 }

@@ -1,173 +1,164 @@
-import { useState, useEffect } from 'react';
-import type { User, Slot, Booking, Tournament, Notification, AppContextType, SubscriptionType } from '@/types';
+import { useState, useCallback } from 'react';
+import { loadState, saveState } from '@/lib/storage';
+import type { User, Slot, Booking, Tournament, Notification } from '@/types';
 
-function storageGet<T>(key: string): T | null {
-  try {
-    const val = localStorage.getItem(key);
-    return val ? (JSON.parse(val) as T) : null;
-  } catch {
-    return null;
-  }
+interface AppState {
+  users: User[];
+  slots: Slot[];
+  bookings: Booking[];
+  tournaments: Tournament[];
+  notifications: Notification[];
+  currentUser: User | null;
 }
 
-function storageSet<T>(key: string, val: T): void {
-  try {
-    localStorage.setItem(key, JSON.stringify(val));
-  } catch {
-    // ignore
-  }
-}
+const initialState: AppState = {
+  users: [],
+  slots: [],
+  bookings: [],
+  tournaments: [],
+  notifications: [],
+  currentUser: null,
+};
 
-export function useStore(): AppContextType {
-  const [currentUser, setCurrentUser] = useState<User | null>(storageGet<User>('currentUser'));
-  const [users, setUsers] = useState<User[]>(storageGet<User[]>('users') || []);
-  const [slots, setSlots] = useState<Slot[]>(storageGet<Slot[]>('slots') || []);
-  const [bookings, setBookings] = useState<Booking[]>(storageGet<Booking[]>('bookings') || []);
-  const [tournaments, setTournaments] = useState<Tournament[]>(storageGet<Tournament[]>('tournaments') || []);
-  const [notifications, setNotifications] = useState<Notification[]>(storageGet<Notification[]>('notifications') || []);
+export function useStore() {
+  const [state, setState] = useState<AppState>(() => {
+    const saved = loadState();
+    return saved ?? initialState;
+  });
 
-  useEffect(() => { storageSet('currentUser', currentUser); }, [currentUser]);
-  useEffect(() => { storageSet('users', users); }, [users]);
-  useEffect(() => { storageSet('slots', slots); }, [slots]);
-  useEffect(() => { storageSet('bookings', bookings); }, [bookings]);
-  useEffect(() => { storageSet('tournaments', tournaments); }, [tournaments]);
-  useEffect(() => { storageSet('notifications', notifications); }, [notifications]);
+  const updateState = useCallback((updater: (prev: AppState) => AppState) => {
+    setState(prev => {
+      const next = updater(prev);
+      saveState(next);
+      return next;
+    });
+  }, []);
 
-  const login = (email: string, password?: string): User | null => {
-    const user = users.find(u => u.email === email && (!password || u.password === password));
+  // ── Users ──────────────────────────────────────────────────────────────────
+  const addUser = useCallback((user: User) => {
+    updateState(s => ({ ...s, users: [...s.users, user] }));
+  }, [updateState]);
+
+  const updateUser = useCallback((user: User) => {
+    updateState(s => ({ ...s, users: s.users.map(u => u.id === user.id ? user : u) }));
+  }, [updateState]);
+
+  const deleteUser = useCallback((id: string) => {
+    updateState(s => ({ ...s, users: s.users.filter(u => u.id !== id) }));
+  }, [updateState]);
+
+  // ── Auth ───────────────────────────────────────────────────────────────────
+  const login = useCallback((email: string, password: string): User | null => {
+    const user = state.users.find(u => u.email === email && u.password === password);
     if (user) {
-      setCurrentUser(user);
+      updateState(s => ({ ...s, currentUser: user }));
       return user;
     }
     return null;
-  };
+  }, [state.users, updateState]);
 
-  const register = (data: Partial<User> & { name: string; email: string; password: string }): User | null => {
-    if (users.find(u => u.email === data.email)) return null;
+  const logout = useCallback(() => {
+    updateState(s => ({ ...s, currentUser: null }));
+  }, [updateState]);
+
+  const register = useCallback((userData: Omit<User, 'id' | 'joinedAt'>): User => {
     const newUser: User = {
-      id: `user-${Date.now()}`,
-      name: data.name,
-      email: data.email,
-      password: data.password,
-      role: 'member',
-      subscriptionStatus: 'inactive',
+      ...userData,
+      id: crypto.randomUUID(),
       joinedAt: new Date().toISOString(),
     };
-    setUsers(prev => [...prev, newUser]);
-    setCurrentUser(newUser);
+    updateState(s => ({ ...s, users: [...s.users, newUser] }));
+    updateState(s => ({ ...s, currentUser: newUser }));
     return newUser;
-  };
+  }, [updateState]);
 
-  const logout = () => setCurrentUser(null);
+  // ── Slots ──────────────────────────────────────────────────────────────────
+  const addSlots = useCallback((newSlots: Slot[]) => {
+    updateState(s => {
+      const slots = s.slots;
+      const toAdd = newSlots.filter(ns => !slots.find(s => s.id === ns.id && (s.status === 'booked_member' || s.status === 'booked_outsider' || s.status === 'tournament')));
+      return { ...s, slots: [...slots.filter(s => !toAdd.find(ns => ns.id === s.id)), ...toAdd] };
+    });
+  }, [updateState]);
 
-  const addBooking = (booking: Omit<Booking, 'id'>) => {
-    const newBooking: Booking = { ...booking, id: `booking-${Date.now()}` };
-    setBookings(prev => [...prev, newBooking]);
-  };
+  const updateSlot = useCallback((slot: Slot) => {
+    updateState(s => ({ ...s, slots: s.slots.map(sl => sl.id === slot.id ? slot : sl) }));
+  }, [updateState]);
 
-  const cancelBooking = (id: string) => {
-    setBookings(prev => prev.map(b => b.id === id ? { ...b, status: 'cancelled' } : b));
-    // Also free up the slot
-    const booking = bookings.find(b => b.id === id);
-    if (booking) {
-      setSlots(prev => prev.map(s => s.id === booking.slotId ? { ...s, status: 'available', bookedBy: undefined } : s));
-    }
-  };
+  const deleteSlot = useCallback((id: string) => {
+    updateState(s => ({ ...s, slots: s.slots.filter(sl => sl.id !== id) }));
+  }, [updateState]);
 
-  const updateUser = (user: User) => {
-    setUsers(prev => prev.map(u => u.id === user.id ? user : u));
-    if (currentUser?.id === user.id) setCurrentUser(user);
-  };
+  // ── Bookings ───────────────────────────────────────────────────────────────
+  const addBooking = useCallback((booking: Booking) => {
+    updateState(s => ({ ...s, bookings: [...s.bookings, booking] }));
+  }, [updateState]);
 
-  const updateSlot = (id: string, updates: Partial<Slot>) => {
-    setSlots(prev => prev.map(s => s.id === id ? { ...s, ...updates } : s));
-  };
+  const updateBooking = useCallback((booking: Booking) => {
+    updateState(s => ({ ...s, bookings: s.bookings.map(b => b.id === booking.id ? booking : b) }));
+  }, [updateState]);
 
-  const generateDaySlots = (date: string) => {
-    const newSlots: Slot[] = [];
-    for (let h = 9; h < 22; h++) {
-      const startTime = `${h.toString().padStart(2, '0')}:00`;
-      const endTime = `${(h + 1).toString().padStart(2, '0')}:00`;
-      for (let lane = 1; lane <= 16; lane++) {
-        newSlots.push({
-          id: `slot-${date}-${lane}-${h}`,
-          date,
-          startTime,
-          endTime,
-          lane,
-          status: 'available',
-        });
-      }
-    }
-    // Remove old available/blocked slots for that date, keep booked ones
-    setSlots(prev => [
-      ...prev.filter(s => s.date !== date || s.status === 'booked_member' || s.status === 'booked_outsider' || s.status === 'tournament'),
-      ...newSlots.filter(ns => !slots.find(s => s.id === ns.id && (s.status === 'booked_member' || s.status === 'booked_outsider' || s.status === 'tournament')))
-    ]);
-  };
+  const cancelBooking = useCallback((id: string) => {
+    updateState(s => ({
+      ...s,
+      bookings: s.bookings.map(b => b.id === id ? { ...b, status: 'cancelled' as const } : b),
+    }));
+  }, [updateState]);
 
-  const deleteSlot = (id: string) => {
-    setSlots(prev => prev.filter(s => s.id !== id));
-  };
+  // ── Tournaments ────────────────────────────────────────────────────────────
+  const addTournament = useCallback((tournament: Tournament) => {
+    updateState(s => ({ ...s, tournaments: [...s.tournaments, tournament] }));
+  }, [updateState]);
 
-  const addTournament = (tournament: Omit<Tournament, 'id'>) => {
-    const newTournament: Tournament = { ...tournament, id: `tour-${Date.now()}` };
-    setTournaments(prev => [...prev, newTournament]);
-  };
+  const updateTournament = useCallback((tournament: Tournament) => {
+    updateState(s => ({ ...s, tournaments: s.tournaments.map(t => t.id === tournament.id ? tournament : t) }));
+  }, [updateState]);
 
-  const updateTournament = (tournament: Tournament) => {
-    setTournaments(prev => prev.map(t => t.id === tournament.id ? tournament : t));
-  };
+  const deleteTournament = useCallback((id: string) => {
+    updateState(s => ({ ...s, tournaments: s.tournaments.filter(t => t.id !== id) }));
+  }, [updateState]);
 
-  const deleteTournament = (id: string) => {
-    setTournaments(prev => prev.filter(t => t.id !== id));
-  };
+  // ── Notifications ──────────────────────────────────────────────────────────
+  const addNotification = useCallback((notification: Notification) => {
+    updateState(s => ({ ...s, notifications: [...s.notifications, notification] }));
+  }, [updateState]);
 
-  const addNotification = (notification: Omit<Notification, 'id'>) => {
-    const newNotif: Notification = { ...notification, id: `notif-${Date.now()}` };
-    setNotifications(prev => [...prev, newNotif]);
-  };
+  const deleteNotification = useCallback((id: string) => {
+    updateState(s => ({ ...s, notifications: s.notifications.filter(n => n.id !== id) }));
+  }, [updateState]);
 
-  const markNotificationRead = (id: string) => {
-    setNotifications(prev => prev.map(n => n.id === id ? { ...n, read: true } : n));
-  };
+  const markNotificationRead = useCallback((id: string) => {
+    updateState(s => ({
+      ...s,
+      notifications: s.notifications.map(n => n.id === id ? { ...n, read: true } : n),
+    }));
+  }, [updateState]);
 
-  const updateSubscription = (userId: string, _type: SubscriptionType) => {
-    setUsers(prev => prev.map(u => u.id === userId ? {
-      ...u,
-      subscriptionStatus: 'active',
-      subscriptionExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
-    } : u));
-    if (currentUser?.id === userId) {
-      setCurrentUser(prev => prev ? {
-        ...prev,
-        subscriptionStatus: 'active',
-        subscriptionExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString()
-      } : null);
-    }
-  };
+  // ── Seed ───────────────────────────────────────────────────────────────────
+  const seedData = useCallback((data: Partial<AppState>) => {
+    updateState(s => ({ ...s, ...data }));
+  }, [updateState]);
 
   return {
-    currentUser,
-    users,
-    slots,
-    bookings,
-    tournaments,
-    notifications,
-    login,
-    register,
-    logout,
-    addBooking,
-    cancelBooking,
+    ...state,
+    addUser,
     updateUser,
+    deleteUser,
+    login,
+    logout,
+    register,
+    addSlots,
     updateSlot,
-    generateDaySlots,
     deleteSlot,
+    addBooking,
+    updateBooking,
+    cancelBooking,
     addTournament,
     updateTournament,
     deleteTournament,
     addNotification,
+    deleteNotification,
     markNotificationRead,
-    updateSubscription,
+    seedData,
   };
 }

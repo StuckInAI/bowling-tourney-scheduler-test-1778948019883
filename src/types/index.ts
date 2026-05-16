@@ -1,4 +1,4 @@
-export type UserRole = 'admin' | 'member';
+export type UserRole = 'member' | 'admin';
 
 export interface User {
   id: string;
@@ -6,66 +6,75 @@ export interface User {
   email: string;
   password: string;
   role: UserRole;
+  membershipType?: 'standard' | 'premium';
+  subscriptionStatus?: 'active' | 'inactive' | 'expired';
+  joinedAt: string;
   phone?: string;
-  membershipType?: 'basic' | 'premium' | 'vip';
-  memberSince?: string;
-  subscriptionExpiry?: string;
 }
+
+export type SlotStatus = 'available' | 'full' | 'closed' | 'booked_member' | 'booked_outsider' | 'tournament';
 
 export interface Slot {
   id: string;
   date: string;
   startTime: string;
   endTime: string;
-  laneNumber: number;
+  lane: number;
   capacity: number;
   bookedCount: number;
+  status: SlotStatus;
   price: number;
-  status: 'available' | 'full' | 'closed';
 }
 
 export interface Booking {
   id: string;
   userId: string;
+  userName: string;
+  userEmail: string;
   slotId: string;
   date: string;
   startTime: string;
   endTime: string;
-  laneNumber: number;
-  status: 'confirmed' | 'cancelled' | 'completed';
+  lane: number;
+  type: 'member' | 'outsider';
+  status: 'confirmed' | 'cancelled';
   createdAt: string;
-  players: number;
-  totalPrice: number;
+  guestName?: string;
+  guestEmail?: string;
+  guestPhone?: string;
+}
+
+export type TournamentStatus = 'draft' | 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+export type TournamentFormat = 'single_elimination' | 'double_elimination' | 'round_robin' | 'league';
+
+export interface TournamentParticipant {
+  userId: string;
+  userName: string;
+  userEmail: string;
+  registeredAt: string;
 }
 
 export interface Tournament {
   id: string;
   name: string;
   description: string;
-  date: string;
-  startTime: string;
-  endTime: string;
+  format: TournamentFormat;
+  startDate: string;
+  endDate: string;
   maxParticipants: number;
-  registeredParticipants: string[];
+  participants: TournamentParticipant[];
+  status: TournamentStatus;
   entryFee: number;
-  prize: string;
-  status: 'upcoming' | 'ongoing' | 'completed' | 'cancelled';
+  prizePool: string;
+  createdAt: string;
 }
 
 export interface Notification {
   id: string;
   title: string;
   message: string;
-  target: 'all' | 'members' | 'admin';
+  type: 'info' | 'warning' | 'success' | 'error';
+  targetRole: 'all' | 'member' | 'admin';
   createdAt: string;
-  read: boolean;
-}
-
-export interface StoreState {
-  users: User[];
-  slots: Slot[];
-  bookings: Booking[];
-  tournaments: Tournament[];
-  notifications: Notification[];
-  currentUser: User | null;
+  read?: boolean;
 }

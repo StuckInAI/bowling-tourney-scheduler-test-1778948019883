@@ -1,98 +1,114 @@
-import { saveState } from './storage';
+import { loadState, saveState } from '@/lib/storage';
 import type { User, Slot, Tournament, Notification } from '@/types';
 
-export function seedInitialData() {
-  const isSeeded = localStorage.getItem('bowling_seeded') === 'true';
-  if (isSeeded) return;
+const adminUser: User = {
+  id: 'admin-1',
+  name: 'Admin User',
+  email: 'admin@bowlpro.com',
+  password: 'admin123',
+  role: 'admin',
+  joinedAt: new Date().toISOString(),
+};
 
-  const admin: User = {
-    id: 'admin-1',
-    name: 'Admin Boss',
-    email: 'admin@bowling.com',
-    password: 'admin123',
-    role: 'admin',
-    subscriptionStatus: 'active',
-    joinedAt: new Date().toISOString(),
-  };
-
-  const member: User = {
+const memberUsers: User[] = [
+  {
     id: 'member-1',
-    name: 'Jane Bowler',
-    email: 'jane@bowler.com',
-    password: 'password',
+    name: 'Alice Johnson',
+    email: 'alice@example.com',
+    password: 'member123',
     role: 'member',
+    membershipType: 'premium',
     subscriptionStatus: 'active',
-    subscriptionExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
     joinedAt: new Date().toISOString(),
-  };
-
-  const member2: User = {
+  },
+  {
     id: 'member-2',
-    name: 'John Strike',
-    email: 'john@bowler.com',
-    password: 'password',
+    name: 'Bob Smith',
+    email: 'bob@example.com',
+    password: 'member123',
     role: 'member',
+    membershipType: 'standard',
     subscriptionStatus: 'active',
-    subscriptionExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
     joinedAt: new Date().toISOString(),
-  };
+  },
+  {
+    id: 'member-3',
+    name: 'Carol White',
+    email: 'carol@example.com',
+    password: 'member123',
+    role: 'member',
+    membershipType: 'premium',
+    subscriptionStatus: 'active',
+    joinedAt: new Date().toISOString(),
+  },
+];
 
+function generateSlots(): Slot[] {
   const slots: Slot[] = [];
-  const dates = [
-    new Date().toISOString().split('T')[0],
-    new Date(Date.now() + 86400000).toISOString().split('T')[0],
-  ];
-
-  dates.forEach(date => {
-    for (let h = 9; h < 22; h++) {
-      const startTime = `${h.toString().padStart(2, '0')}:00`;
-      const endTime = `${(h + 1).toString().padStart(2, '0')}:00`;
-      for (let lane = 1; lane <= 16; lane++) {
+  const today = new Date();
+  for (let d = 0; d < 7; d++) {
+    const date = new Date(today);
+    date.setDate(today.getDate() + d);
+    const dateStr = date.toISOString().split('T')[0];
+    const times = ['09:00', '11:00', '13:00', '15:00', '17:00', '19:00'];
+    for (const startTime of times) {
+      const [h, m] = startTime.split(':').map(Number);
+      const endHour = h + 2;
+      const endTime = `${String(endHour).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+      for (let lane = 1; lane <= 4; lane++) {
         slots.push({
-          id: `slot-${date}-${lane}-${h}`,
-          date,
+          id: `slot-${dateStr}-${startTime}-${lane}`,
+          date: dateStr,
           startTime,
           endTime,
           lane,
+          capacity: 6,
+          bookedCount: 0,
           status: 'available',
+          price: 25,
         });
       }
     }
-  });
+  }
+  return slots;
+}
 
-  const tournaments: Tournament[] = [
-    {
-      id: 'tour-1',
-      name: 'Summer Invitational',
-      description: 'The biggest event of the season.',
-      format: 'single-elimination',
-      startDate: dates[1],
-      endDate: dates[1],
-      participants: [
-        { userId: member.id, status: 'pending' },
-        { userId: member2.id, status: 'accepted' },
-      ],
-      status: 'draft',
-      prize: '$1000',
-    },
-  ];
+const sampleTournament: Tournament = {
+  id: 'tournament-1',
+  name: 'Summer Championship 2025',
+  description: 'Annual bowling championship open to all premium members.',
+  format: 'single_elimination',
+  startDate: '2025-07-01',
+  endDate: '2025-07-07',
+  maxParticipants: 16,
+  participants: [],
+  status: 'upcoming',
+  entryFee: 50,
+  prizePool: '$500',
+  createdAt: new Date().toISOString(),
+};
 
-  const notifications: Notification[] = [
-    {
-      id: 'notif-1',
-      title: 'Welcome!',
-      message: 'Welcome to our Bowling Management System.',
-      type: 'info',
-      targetRole: 'all',
-      createdAt: new Date().toISOString(),
-      read: false,
-    },
-  ];
+const sampleNotification: Notification = {
+  id: 'notif-1',
+  title: 'Welcome to BowlPro!',
+  message: 'Thank you for joining BowlPro. Book your first lane today!',
+  type: 'info',
+  targetRole: 'all',
+  createdAt: new Date().toISOString(),
+};
 
-  saveState('users', [admin, member, member2]);
-  saveState('slots', slots);
-  saveState('tournaments', tournaments);
-  saveState('notifications', notifications);
-  saveState('bookings', []);
-  localStorage.setItem('bowling_seeded', 'true');
+export function seedInitialData() {
+  const existing = loadState();
+  if (existing && existing.users && existing.users.length > 0) return;
+
+  const state = {
+    users: [adminUser, ...memberUsers],
+    slots: generateSlots(),
+    bookings: [],
+    tournaments: [sampleTournament],
+    notifications: [sampleNotification],
+    currentUser: null,
+  };
+
+  saveState(state);
 }
