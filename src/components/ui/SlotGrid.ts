@@ -1,1 +1,1 @@
-export { SlotGrid as default } from './SlotGrid';
+export { default } from './SlotGrid';

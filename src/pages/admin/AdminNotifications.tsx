@@ -1,74 +1,94 @@
-import { useState } from 'react';
+import { useState, type ChangeEvent } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
 import Select from '@/components/ui/Select';
-import type { UserRole } from '@/types';
+import type { Notification } from '@/types';
 
 export default function AdminNotifications() {
-  const { notifications, addNotification, deleteNotification } = useAppContext();
-  const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({ title: '', message: '', targetRole: '' });
+  const { notifications, addNotification } = useAppContext();
+  const [title, setTitle] = useState('');
+  const [message, setMessage] = useState('');
+  const [targetRole, setTargetRole] = useState<Notification['targetRole']>('all');
 
-  const handleSend = () => {
-    if (!form.title || !form.message) return;
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !message.trim()) return;
     addNotification({
-      id: crypto.randomUUID(),
-      title: form.title,
-      message: form.message,
-      targetRole: form.targetRole ? (form.targetRole as UserRole) : undefined,
+      title,
+      message,
+      targetRole,
       createdAt: new Date().toISOString(),
     });
-    setShowModal(false);
-    setForm({ title: '', message: '', targetRole: '' });
+    setTitle('');
+    setMessage('');
+    setTargetRole('all');
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Notifications</h1>
-        <Button onClick={() => setShowModal(true)}>+ Send Notification</Button>
-      </div>
+    <div className="space-y-6">
+      <h1 className="text-2xl font-bold text-slate-800">Notifications</h1>
 
-      {notifications.length === 0 ? (
-        <Card><p style={{ textAlign: 'center', color: '#64748b' }}>No notifications yet.</p></Card>
-      ) : (
-        notifications.map((n) => (
-          <Card key={n.id}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '1rem' }}>
-              <div>
-                <div style={{ fontWeight: 700, marginBottom: '0.25rem' }}>{n.title}</div>
-                <div style={{ fontSize: '0.875rem', color: '#64748b' }}>{n.message}</div>
-                {n.targetRole && <div style={{ fontSize: '0.8rem', marginTop: '0.5rem', color: '#94a3b8' }}>Target: {n.targetRole}</div>}
-              </div>
-              <Button size="sm" variant="danger" onClick={() => deleteNotification(n.id)}>Delete</Button>
-            </div>
-          </Card>
-        ))
-      )}
-
-      <Modal isOpen={showModal} onClose={() => setShowModal(false)} title="Send Notification">
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <Input label="Title" value={form.title} onChange={(e) => setForm(p => ({ ...p, title: e.target.value }))} required />
-          <Input label="Message" value={form.message} onChange={(e) => setForm(p => ({ ...p, message: e.target.value }))} required />
+      <Card>
+        <h2 className="text-lg font-semibold mb-4">Send Notification</h2>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <Input
+            label="Title"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            placeholder="Notification title"
+            required
+          />
+          <div className="flex flex-col gap-1">
+            <label className="text-sm font-medium text-slate-700">Message</label>
+            <textarea
+              className="border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              rows={3}
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Notification message"
+              required
+            />
+          </div>
           <Select
-            label="Target Audience"
-            value={form.targetRole}
-            onChange={(e) => setForm(p => ({ ...p, targetRole: e.target.value }))}
+            label="Audience"
+            value={targetRole}
+            onChange={(e: ChangeEvent<HTMLSelectElement>) =>
+              setTargetRole(e.target.value as Notification['targetRole'])
+            }
             options={[
+              { value: 'all', label: 'Everyone' },
               { value: 'member', label: 'Members Only' },
               { value: 'admin', label: 'Admins Only' },
             ]}
-            placeholder="Everyone"
           />
-          <div style={{ display: 'flex', gap: '0.75rem', justifyContent: 'flex-end' }}>
-            <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
-            <Button onClick={handleSend}>Send</Button>
-          </div>
-        </div>
-      </Modal>
+          <Button type="submit">Send Notification</Button>
+        </form>
+      </Card>
+
+      <Card>
+        <h2 className="text-lg font-semibold mb-4">Sent Notifications</h2>
+        {notifications.length === 0 ? (
+          <p className="text-slate-500 text-sm">No notifications sent yet.</p>
+        ) : (
+          <ul className="space-y-3">
+            {notifications.map((n) => (
+              <li key={n.id} className="border rounded-lg p-4">
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-semibold text-slate-800">{n.title}</p>
+                    <p className="text-sm text-slate-600 mt-1">{n.message}</p>
+                    <p className="text-xs text-slate-400 mt-1">
+                      To: {n.targetRole} &middot; {new Date(n.createdAt).toLocaleString()}
+                    </p>
+                  </div>
+                </div>
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
     </div>
   );
 }
