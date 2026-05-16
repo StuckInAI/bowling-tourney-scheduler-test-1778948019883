@@ -1,43 +1,28 @@
+import { clsx, type ClassValue } from 'clsx';
+
+export function cn(...inputs: ClassValue[]) {
+  return clsx(inputs);
+}
+
 export function formatDate(date: Date): string {
-  return date.toLocaleDateString('en-US', {
-    weekday: 'short',
-    year: 'numeric',
+  return new Intl.DateTimeFormat('en-US', {
     month: 'short',
     day: 'numeric',
-  });
+    year: 'numeric',
+  }).format(date);
 }
 
 export function formatTime(time: string): string {
-  const [hours, minutes] = time.split(':').map(Number);
-  const period = hours >= 12 ? 'PM' : 'AM';
-  const displayHours = hours % 12 || 12;
-  return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
-}
-
-export function getInitials(name: string): string {
-  return name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .toUpperCase()
-    .slice(0, 2);
-}
-
-export function generateId(): string {
-  return crypto.randomUUID();
+  return time; // Simple string passthrough since we use 'HH:mm'
 }
 
 export function generateConfirmationCode(): string {
   return Math.random().toString(36).substring(2, 8).toUpperCase();
 }
 
-export function isDateInPast(dateStr: string): boolean {
-  const date = new Date(dateStr);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-  return date < today;
-}
-
-export function getTodayString(): string {
-  return new Date().toISOString().split('T')[0];
+export function isWithinNext24Hours(dateStr: string, timeStr: string): boolean {
+  const now = new Date();
+  const slotDate = new Date(`${dateStr}T${timeStr}`);
+  const diff = slotDate.getTime() - now.getTime();
+  return diff > 0 && diff <= 24 * 60 * 60 * 1000;
 }
