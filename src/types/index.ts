@@ -1,31 +1,35 @@
 export type UserRole = 'member' | 'admin';
-export type SubscriptionType = 'basic' | 'premium' | 'vip';
+export type SubscriptionType = 'none' | 'monthly' | 'annual';
+export type TournamentStatus = 'upcoming' | 'active' | 'completed';
+export type SlotStatus = 'available' | 'booked_member' | 'booked_outsider' | 'tournament' | 'blocked';
+export type BookingStatus = 'confirmed' | 'cancelled';
 
-export type User = {
+export interface User {
   id: string;
   name: string;
   email: string;
   password: string;
   role: UserRole;
   subscription: SubscriptionType;
-  subscriptionTier: SubscriptionType;
-  joinedAt: string;
-};
+  subscriptionExpiry?: string;
+  phone?: string;
+  address?: string;
+  createdAt: string;
+}
 
-export type SlotStatus = 'available' | 'booked_member' | 'booked_outsider' | 'tournament' | 'blocked';
-
-export type Slot = {
+export interface Slot {
   id: string;
   date: string;
-  time: string;
   startTime: string;
   endTime: string;
   lane: number;
   status: SlotStatus;
-  bookingId?: string;
-};
+  bookedBy?: string;
+  type: string;
+  createdAt: string;
+}
 
-export type Booking = {
+export interface Booking {
   id: string;
   slotId: string;
   userId: string;
@@ -34,39 +38,33 @@ export type Booking = {
   userType: 'member' | 'outsider';
   lane: number;
   date: string;
-  time: string;
   startTime: string;
   endTime: string;
-  status: 'confirmed' | 'cancelled';
+  time: string;
+  status: BookingStatus;
   type: string;
   confirmationCode: string;
   createdAt: string;
-  entryFee?: number;
-};
+}
 
-export type TournamentStatus = 'upcoming' | 'ongoing' | 'completed';
-
-export type Tournament = {
+export interface Tournament {
   id: string;
   name: string;
-  description: string;
   date: string;
-  startDate: string;
-  endDate: string;
+  startTime: string;
+  endTime: string;
   status: TournamentStatus;
+  registrationOpen: boolean;
   maxParticipants: number;
-  currentParticipants: number;
-  entryFee: number;
-  prize: string;
-  lanes: number[];
-  registeredUserIds: string[];
-};
+  registeredParticipants: string[];
+  description: string;
+  createdAt: string;
+}
 
-export type Notification = {
+export interface Notification {
   id: string;
   title: string;
   message: string;
   targetRole: 'all' | UserRole;
   createdAt: string;
-  readBy: string[];
-};
+}
