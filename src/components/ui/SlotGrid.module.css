@@ -1,0 +1,111 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-md);
+}
+
+.scroll {
+  overflow-x: auto;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--color-gray-200);
+}
+
+.table {
+  border-collapse: collapse;
+  width: 100%;
+  min-width: 1200px;
+}
+
+.timeHeader {
+  background: var(--color-gray-50);
+  padding: 10px 12px;
+  text-align: left;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--color-gray-600);
+  border-bottom: 2px solid var(--color-gray-200);
+  border-right: 1px solid var(--color-gray-200);
+  white-space: nowrap;
+  min-width: 80px;
+  position: sticky;
+  left: 0;
+  z-index: 2;
+}
+
+.laneHeader {
+  background: var(--color-primary);
+  color: white;
+  padding: 10px 8px;
+  text-align: center;
+  font-size: 0.78rem;
+  font-weight: 700;
+  border-bottom: 2px solid var(--color-primary-dark);
+  border-right: 1px solid var(--color-primary-dark);
+  white-space: nowrap;
+  min-width: 80px;
+}
+
+.timeCell {
+  padding: 8px 12px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--color-gray-600);
+  background: var(--color-gray-50);
+  border-right: 1px solid var(--color-gray-200);
+  border-bottom: 1px solid var(--color-gray-100);
+  white-space: nowrap;
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
+.td {
+  padding: 4px;
+  border-right: 1px solid var(--color-gray-100);
+  border-bottom: 1px solid var(--color-gray-100);
+}
+
+.cell {
+  padding: 6px 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm);
+  min-height: 36px;
+}
+
+.cellEmpty {
+  min-height: 36px;
+  background: var(--color-gray-50);
+  border-radius: var(--radius-sm);
+}
+
+.clickable {
+  cursor: pointer;
+  transition: opacity var(--transition-fast);
+}
+.clickable:hover {
+  opacity: 0.8;
+  transform: scale(1.02);
+}
+
+.available       { background: var(--color-slot-available); }
+.booked_member   { background: var(--color-slot-booked-member); }
+.booked_outsider { background: var(--color-slot-booked-outsider); }
+.tournament      { background: var(--color-slot-tournament); }
+.blocked         { background: var(--color-slot-blocked); }
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-md);
+  align-items: center;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.8rem;
+  color: var(--color-gray-600);
+}
