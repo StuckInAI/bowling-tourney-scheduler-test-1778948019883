@@ -1,117 +1,133 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useAppContext } from '@/context/AppContext';
-import type { Slot } from '@/types';
+import SlotGrid from '@/components/ui/SlotGrid';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Modal from '@/components/ui/Modal';
 import Input from '@/components/ui/Input';
-import SlotGrid from '@/components/ui/SlotGrid';
+import Modal from '@/components/ui/Modal';
+import type { Slot } from '@/types';
 
 export default function PublicBookingPage() {
-  const { slots, addBooking, updateSlot } = useAppContext();
+  const { slots, addBooking } = useAppContext();
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
-  const [guestForm, setGuestForm] = useState({ name: '', email: '', phone: '' });
-  const [successMsg, setSuccessMsg] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [guestName, setGuestName] = useState('');
+  const [guestEmail, setGuestEmail] = useState('');
+  const [success, setSuccess] = useState(false);
   const [errors, setErrors] = useState<{ name?: string; email?: string }>({});
 
-  const handleSelectSlot = (slot: Slot) => {
+  const filteredSlots = slots.filter(s => s.date === selectedDate);
+
+  const handleSlotClick = (slot: Slot) => {
+    if (slot.status !== 'available') return;
     setSelectedSlot(slot);
+    setShowModal(true);
   };
 
   const validate = () => {
-    const e: { name?: string; email?: string } = {};
-    if (!guestForm.name.trim()) e.name = 'Name is required';
-    if (!guestForm.email.trim()) e.email = 'Email is required';
-    setErrors(e);
-    return Object.keys(e).length === 0;
+    const errs: { name?: string; email?: string } = {};
+    if (!guestName.trim()) errs.name = 'Name is required';
+    if (!guestEmail.trim()) errs.email = 'Email is required';
+    else if (!/^[^@]+@[^@]+\.[^@]+$/.test(guestEmail)) errs.email = 'Invalid email';
+    return errs;
   };
 
-  const handleConfirm = () => {
-    if (!selectedSlot || !validate()) return;
-
-    const booking = {
-      id: `booking-${crypto.randomUUID()}`,
+  const handleConfirmBooking = () => {
+    const errs = validate();
+    if (Object.keys(errs).length > 0) {
+      setErrors(errs);
+      return;
+    }
+    if (!selectedSlot) return;
+    addBooking({
       userId: 'guest',
-      userName: guestForm.name,
-      userEmail: guestForm.email,
       slotId: selectedSlot.id,
-      date: selectedSlot.date,
-      startTime: selectedSlot.startTime,
-      endTime: selectedSlot.endTime,
-      lane: selectedSlot.lane,
-      type: 'outsider' as const,
-      status: 'confirmed' as const,
-      createdAt: new Date().toISOString(),
-      guestName: guestForm.name,
-      guestEmail: guestForm.email,
-      guestPhone: guestForm.phone,
-    };
-
-    addBooking(booking);
-
-    const newCount = selectedSlot.bookedCount + 1;
-    updateSlot({
-      ...selectedSlot,
-      bookedCount: newCount,
-      status: newCount >= selectedSlot.capacity ? 'full' : 'booked_outsider',
+      status: 'confirmed',
+      guestName,
+      guestEmail,
     });
-
-    setSuccessMsg(`Booking confirmed for Lane ${selectedSlot.lane} on ${selectedSlot.date} at ${selectedSlot.startTime}!`);
+    setShowModal(false);
     setSelectedSlot(null);
-    setGuestForm({ name: '', email: '', phone: '' });
+    setGuestName('');
+    setGuestEmail('');
+    setErrors({});
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 4000);
   };
 
   return (
     <div className="min-h-screen bg-slate-50">
-      <header className="bg-white border-b px-6 py-4 flex items-center justify-between">
-        <span className="text-xl font-bold">🎳 BowlPro</span>
-        <a href="/login" className="text-sm text-blue-600 hover:underline">Member Login</a>
-      </header>
+      <nav className="bg-white border-b px-6 py-4 flex items-center justify-between">
+        <Link to="/" className="text-xl font-bold text-blue-700">🎳 BowlPro</Link>
+        <div className="flex gap-3">
+          <Link to="/login">
+            <Button variant="ghost" size="sm">Login</Button>
+          </Link>
+          <Link to="/register">
+            <Button size="sm">Register</Button>
+          </Link>
+        </div>
+      </nav>
 
-      <div className="max-w-4xl mx-auto p-6 space-y-6">
-        <h1 className="text-2xl font-bold">Public Lane Booking</h1>
+      <div className="max-w-5xl mx-auto px-4 py-10 space-y-6">
+        <h1 className="text-3xl font-bold text-slate-800">Book a Bowling Slot</h1>
+        <p className="text-slate-500">Select a date and available slot below. No account required for guest bookings.</p>
 
-        {successMsg && (
-          <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-800">
-            {successMsg}
+        {success && (
+          <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3">
+            Booking confirmed! Check your email for details.
           </div>
         )}
 
         <Card>
-          <h2 className="font-semibold mb-4">Your Details</h2>
-          <div className="grid gap-4 sm:grid-cols-3">
+          <div className="mb-4">
             <Input
-              label="Full Name *"
-              value={guestForm.name}
-              onChange={e => setGuestForm(f => ({ ...f, name: e.target.value }))}
-              error={errors.name}
-            />
-            <Input
-              label="Email *"
-              type="email"
-              value={guestForm.email}
-              onChange={e => setGuestForm(f => ({ ...f, email: e.target.value }))}
-              error={errors.email}
-            />
-            <Input
-              label="Phone"
-              value={guestForm.phone}
-              onChange={e => setGuestForm(f => ({ ...f, phone: e.target.value }))}
+              label="Select Date"
+              type="date"
+              value={selectedDate}
+              onChange={e => setSelectedDate(e.target.value)}
             />
           </div>
+          <SlotGrid slots={filteredSlots} onSlotClick={handleSlotClick} />
         </Card>
-
-        <SlotGrid slots={slots} onSelectSlot={handleSelectSlot} />
-
-        {selectedSlot && (
-          <Card className="border-blue-300 bg-blue-50">
-            <p className="text-sm">
-              <strong>Selected:</strong> Lane {selectedSlot.lane} · {selectedSlot.startTime} – {selectedSlot.endTime} on {selectedSlot.date}
-            </p>
-            <Button className="mt-3" onClick={handleConfirm}>Confirm Booking</Button>
-          </Card>
-        )}
       </div>
+
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title="Guest Booking"
+      >
+        {selectedSlot && (
+          <div className="p-6 space-y-4">
+            <p className="text-slate-600">
+              Lane <strong>{selectedSlot.lane}</strong> on <strong>{selectedSlot.date}</strong>
+              {' '}from <strong>{selectedSlot.startTime}</strong> to <strong>{selectedSlot.endTime}</strong>
+              {' '}— <strong>${selectedSlot.price}</strong>
+            </p>
+            <Input
+              label="Your Name"
+              value={guestName}
+              onChange={e => setGuestName(e.target.value)}
+              error={errors.name}
+              placeholder="John Doe"
+            />
+            <Input
+              label="Your Email"
+              type="email"
+              value={guestEmail}
+              onChange={e => setGuestEmail(e.target.value)}
+              error={errors.email}
+              placeholder="john@example.com"
+            />
+            <div className="flex gap-3 justify-end">
+              <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
+              <Button onClick={handleConfirmBooking}>Confirm Booking</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   );
 }

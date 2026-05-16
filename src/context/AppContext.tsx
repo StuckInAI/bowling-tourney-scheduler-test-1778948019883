@@ -1,18 +1,17 @@
-import React, { createContext, useContext } from 'react';
-import { useStore } from '@/hooks/useStore';
+import { createContext, useContext } from 'react';
+import type { ReactNode } from 'react';
 import type { AppContextType } from '@/types';
+import { useStore } from '@/hooks/useStore';
 
-const AppContext = createContext<AppContextType | undefined>(undefined);
+const AppContext = createContext<AppContextType | null>(null);
 
-export function AppProvider({ children }: { children: React.ReactNode }) {
+export function AppProvider({ children }: { children: ReactNode }) {
   const store = useStore();
   return <AppContext.Provider value={store}>{children}</AppContext.Provider>;
 }
 
-export function useAppContext() {
-  const context = useContext(AppContext);
-  if (context === undefined) {
-    throw new Error('useAppContext must be used within an AppProvider');
-  }
-  return context;
+export function useAppContext(): AppContextType {
+  const ctx = useContext(AppContext);
+  if (!ctx) throw new Error('useAppContext must be used within AppProvider');
+  return ctx;
 }

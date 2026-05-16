@@ -1,113 +1,96 @@
-import { loadState, saveState } from '@/lib/storage';
-import type { User, Slot, Tournament, Notification } from '@/types';
+import { saveState, loadState } from '@/lib/storage';
+import type { AppState } from '@/types';
 
-const adminUser: User = {
-  id: 'admin-1',
-  name: 'Admin User',
-  email: 'admin@bowlpro.com',
-  password: 'admin123',
-  role: 'admin',
-  joinedAt: new Date().toISOString(),
-};
+const now = new Date();
+const today = now.toISOString().split('T')[0];
 
-const memberUsers: User[] = [
-  {
-    id: 'member-1',
-    name: 'Alice Johnson',
-    email: 'alice@example.com',
-    password: 'member123',
-    role: 'member',
-    membershipType: 'premium',
-    subscriptionStatus: 'active',
-    joinedAt: new Date().toISOString(),
-  },
-  {
-    id: 'member-2',
-    name: 'Bob Smith',
-    email: 'bob@example.com',
-    password: 'member123',
-    role: 'member',
-    membershipType: 'standard',
-    subscriptionStatus: 'active',
-    joinedAt: new Date().toISOString(),
-  },
-  {
-    id: 'member-3',
-    name: 'Carol White',
-    email: 'carol@example.com',
-    password: 'member123',
-    role: 'member',
-    membershipType: 'premium',
-    subscriptionStatus: 'active',
-    joinedAt: new Date().toISOString(),
-  },
-];
-
-function generateSlots(): Slot[] {
-  const slots: Slot[] = [];
-  const today = new Date();
-  for (let d = 0; d < 7; d++) {
-    const date = new Date(today);
-    date.setDate(today.getDate() + d);
-    const dateStr = date.toISOString().split('T')[0];
-    const times = ['09:00', '11:00', '13:00', '15:00', '17:00', '19:00'];
-    for (const startTime of times) {
-      const [h, m] = startTime.split(':').map(Number);
-      const endHour = h + 2;
-      const endTime = `${String(endHour).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
-      for (let lane = 1; lane <= 4; lane++) {
-        slots.push({
-          id: `slot-${dateStr}-${startTime}-${lane}`,
-          date: dateStr,
-          startTime,
-          endTime,
-          lane,
-          capacity: 6,
-          bookedCount: 0,
-          status: 'available',
-          price: 25,
-        });
-      }
-    }
-  }
-  return slots;
+function addDays(base: string, days: number): string {
+  const d = new Date(base);
+  d.setDate(d.getDate() + days);
+  return d.toISOString().split('T')[0];
 }
 
-const sampleTournament: Tournament = {
-  id: 'tournament-1',
-  name: 'Summer Championship 2025',
-  description: 'Annual bowling championship open to all premium members.',
-  format: 'single_elimination',
-  startDate: '2025-07-01',
-  endDate: '2025-07-07',
-  maxParticipants: 16,
-  participants: [],
-  status: 'upcoming',
-  entryFee: 50,
-  prizePool: '$500',
-  createdAt: new Date().toISOString(),
-};
-
-const sampleNotification: Notification = {
-  id: 'notif-1',
-  title: 'Welcome to BowlPro!',
-  message: 'Thank you for joining BowlPro. Book your first lane today!',
-  type: 'info',
-  targetRole: 'all',
-  createdAt: new Date().toISOString(),
-};
-
-export function seedInitialData() {
-  const existing = loadState();
+export function seedInitialData(): void {
+  const existing = loadState<AppState>();
   if (existing && existing.users && existing.users.length > 0) return;
 
-  const state = {
-    users: [adminUser, ...memberUsers],
-    slots: generateSlots(),
-    bookings: [],
-    tournaments: [sampleTournament],
-    notifications: [sampleNotification],
+  const state: AppState = {
     currentUser: null,
+    users: [
+      {
+        id: 'admin-1',
+        name: 'Admin User',
+        email: 'admin@bowlpro.com',
+        password: 'admin123',
+        role: 'admin',
+        joinedAt: today,
+      },
+      {
+        id: 'member-1',
+        name: 'John Doe',
+        email: 'john@example.com',
+        password: 'member123',
+        role: 'member',
+        membershipType: 'premium',
+        membershipExpiry: addDays(today, 30),
+        phone: '555-0101',
+        joinedAt: addDays(today, -60),
+      },
+      {
+        id: 'member-2',
+        name: 'Jane Smith',
+        email: 'jane@example.com',
+        password: 'member123',
+        role: 'member',
+        membershipType: 'basic',
+        membershipExpiry: addDays(today, 15),
+        phone: '555-0102',
+        joinedAt: addDays(today, -30),
+      },
+    ],
+    slots: [
+      { id: 's1', lane: 1, date: today, startTime: '09:00', endTime: '10:00', status: 'available', price: 20 },
+      { id: 's2', lane: 1, date: today, startTime: '10:00', endTime: '11:00', status: 'booked', price: 20 },
+      { id: 's3', lane: 2, date: today, startTime: '09:00', endTime: '10:00', status: 'available', price: 20 },
+      { id: 's4', lane: 2, date: today, startTime: '10:00', endTime: '11:00', status: 'maintenance', price: 20 },
+      { id: 's5', lane: 3, date: today, startTime: '09:00', endTime: '10:00', status: 'available', price: 25 },
+      { id: 's6', lane: 3, date: today, startTime: '10:00', endTime: '11:00', status: 'available', price: 25 },
+      { id: 's7', lane: 1, date: addDays(today, 1), startTime: '09:00', endTime: '10:00', status: 'available', price: 20 },
+      { id: 's8', lane: 2, date: addDays(today, 1), startTime: '09:00', endTime: '10:00', status: 'available', price: 20 },
+    ],
+    bookings: [
+      {
+        id: 'b1',
+        userId: 'member-1',
+        slotId: 's2',
+        bookedAt: today,
+        status: 'confirmed',
+      },
+    ],
+    tournaments: [
+      {
+        id: 't1',
+        name: 'Summer Championship',
+        date: addDays(today, 7),
+        startTime: '10:00',
+        endTime: '18:00',
+        maxParticipants: 16,
+        registeredParticipants: ['member-1'],
+        entryFee: 50,
+        prize: '$500 + Trophy',
+        status: 'upcoming',
+        description: 'Annual summer bowling championship open to all members.',
+      },
+    ],
+    notifications: [
+      {
+        id: 'n1',
+        title: 'Welcome to BowlPro!',
+        message: 'Thank you for joining our bowling reservation system.',
+        createdAt: today,
+        recipientType: 'all',
+      },
+    ],
   };
 
   saveState(state);

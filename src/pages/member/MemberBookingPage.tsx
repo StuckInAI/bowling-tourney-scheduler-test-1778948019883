@@ -1,86 +1,80 @@
 import { useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
-import type { Slot } from '@/types';
+import SlotGrid from '@/components/ui/SlotGrid';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import Badge from '@/components/ui/Badge';
+import Input from '@/components/ui/Input';
 import Modal from '@/components/ui/Modal';
-import SlotGrid from '@/components/ui/SlotGrid';
-import { formatDate } from '@/lib/utils';
+import type { Slot } from '@/types';
 
 export default function MemberBookingPage() {
-  const { currentUser, slots, addBooking, updateSlot } = useAppContext();
+  const { slots, addBooking, currentUser } = useAppContext();
+  const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
   const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
-  const [confirmOpen, setConfirmOpen] = useState(false);
-  const [successMsg, setSuccessMsg] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [success, setSuccess] = useState(false);
 
-  const handleSelectSlot = (slot: Slot) => {
+  const filteredSlots = slots.filter(s => s.date === selectedDate);
+
+  const handleSlotClick = (slot: Slot) => {
+    if (slot.status !== 'available') return;
     setSelectedSlot(slot);
-    setConfirmOpen(true);
+    setShowModal(true);
   };
 
-  const handleConfirm = () => {
+  const handleConfirmBooking = () => {
     if (!selectedSlot || !currentUser) return;
-
-    const booking = {
-      id: `booking-${crypto.randomUUID()}`,
+    addBooking({
       userId: currentUser.id,
-      userName: currentUser.name,
-      userEmail: currentUser.email,
       slotId: selectedSlot.id,
-      date: selectedSlot.date,
-      startTime: selectedSlot.startTime,
-      endTime: selectedSlot.endTime,
-      lane: selectedSlot.lane,
-      type: 'member' as const,
-      status: 'confirmed' as const,
-      createdAt: new Date().toISOString(),
-    };
-
-    addBooking(booking);
-
-    const newCount = selectedSlot.bookedCount + 1;
-    updateSlot({
-      ...selectedSlot,
-      bookedCount: newCount,
-      status: newCount >= selectedSlot.capacity ? 'full' : 'booked_member',
+      status: 'confirmed',
     });
-
-    setConfirmOpen(false);
-    setSuccessMsg(`Booking confirmed for Lane ${selectedSlot.lane} on ${formatDate(new Date(selectedSlot.date + 'T12:00:00'))} at ${selectedSlot.startTime}`);
+    setShowModal(false);
     setSelectedSlot(null);
+    setSuccess(true);
+    setTimeout(() => setSuccess(false), 3000);
   };
 
   return (
     <div className="space-y-6">
-      <h1 className="text-2xl font-bold">Book a Lane</h1>
+      <h1 className="text-2xl font-bold text-slate-800">Book a Slot</h1>
 
-      {successMsg && (
-        <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-green-800">
-          {successMsg}
+      {success && (
+        <div className="bg-green-50 border border-green-200 text-green-800 rounded-lg px-4 py-3">
+          Booking confirmed successfully!
         </div>
       )}
 
-      <SlotGrid slots={slots} onSelectSlot={handleSelectSlot} />
-
-      <Modal isOpen={confirmOpen} onClose={() => setConfirmOpen(false)} title="Confirm Booking">
-        <div className="p-6 space-y-4">
-          {selectedSlot && (
-            <>
-              <Card className="bg-slate-50">
-                <h3 className="font-bold">Selected: Lane {selectedSlot.lane}</h3>
-                <p className="text-sm text-slate-600 mt-1">
-                  {formatDate(new Date(selectedSlot.date + 'T12:00:00'))} · {selectedSlot.startTime} – {selectedSlot.endTime}
-                </p>
-                <p className="text-sm font-medium mt-2">Price: ${selectedSlot.price}</p>
-              </Card>
-              <div className="flex justify-end gap-2">
-                <Button variant="secondary" onClick={() => setConfirmOpen(false)}>Cancel</Button>
-                <Button onClick={handleConfirm}>Confirm Booking</Button>
-              </div>
-            </>
-          )}
+      <Card>
+        <div className="mb-4">
+          <Input
+            label="Select Date"
+            type="date"
+            value={selectedDate}
+            onChange={e => setSelectedDate(e.target.value)}
+          />
         </div>
+        <SlotGrid slots={filteredSlots} onSlotClick={handleSlotClick} />
+      </Card>
+
+      <Modal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        title="Confirm Booking"
+      >
+        {selectedSlot && (
+          <div className="p-6 space-y-4">
+            <p className="text-slate-600">
+              Lane <strong>{selectedSlot.lane}</strong> on <strong>{selectedSlot.date}</strong>
+              {' '}from <strong>{selectedSlot.startTime}</strong> to <strong>{selectedSlot.endTime}</strong>
+            </p>
+            <p className="text-slate-600">Price: <strong>${selectedSlot.price}</strong></p>
+            <div className="flex gap-3 justify-end">
+              <Button variant="secondary" onClick={() => setShowModal(false)}>Cancel</Button>
+              <Button onClick={handleConfirmBooking}>Confirm Booking</Button>
+            </div>
+          </div>
+        )}
       </Modal>
     </div>
   );
