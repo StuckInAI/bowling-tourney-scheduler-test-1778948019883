@@ -9,7 +9,7 @@ export default function AdminOverview() {
   const members = users.filter((u) => u.role === 'member');
   const confirmedBookings = bookings.filter((b) => b.status === 'confirmed');
   const availableSlots = slots.filter((s) => s.status === 'available');
-  const openTournaments = tournaments.filter((t) => t.status === 'open');
+  const activeTournaments = tournaments.filter((t) => t.status === 'active' || t.status === 'draft');
 
   const recentBookings = [...bookings]
     .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
@@ -23,7 +23,7 @@ export default function AdminOverview() {
         <StatCard title="Total Members" value={members.length} icon="👥" color="blue" />
         <StatCard title="Confirmed Bookings" value={confirmedBookings.length} icon="📋" color="green" />
         <StatCard title="Available Slots" value={availableSlots.length} icon="🎳" color="purple" />
-        <StatCard title="Open Tournaments" value={openTournaments.length} icon="🏆" color="orange" />
+        <StatCard title="Active Tournaments" value={activeTournaments.length} icon="🏆" color="orange" />
       </div>
 
       <Card>
@@ -35,8 +35,8 @@ export default function AdminOverview() {
             {recentBookings.map((b) => (
               <div key={b.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '0.75rem', background: '#f8fafc', borderRadius: '8px', flexWrap: 'wrap', gap: '0.5rem' }}>
                 <div>
-                  <div style={{ fontWeight: 600 }}>{b.userName}</div>
-                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Lane {b.lane} · {formatDate(new Date(b.date))}</div>
+                  <div style={{ fontWeight: 600 }}>{b.userName || b.outsiderName || 'Guest'}</div>
+                  <div style={{ fontSize: '0.8rem', color: '#64748b' }}>Lane {b.lane} · {formatDate(new Date(b.date + 'T12:00:00'))}</div>
                 </div>
                 <span style={{ fontSize: '0.8rem', padding: '2px 8px', borderRadius: '999px', background: b.status === 'confirmed' ? '#dcfce7' : '#fee2e2', color: b.status === 'confirmed' ? '#15803d' : '#b91c1c' }}>
                   {b.status}

@@ -5,35 +5,43 @@ import Button from '@/components/ui/Button';
 import SlotGrid from '@/components/ui/SlotGrid';
 import { formatDate, generateConfirmationCode } from '@/lib/utils';
 import { Link } from 'react-router-dom';
+import type { Slot } from '@/types';
 
 export default function MemberBookingPage() {
   const { currentUser, slots, addBooking, updateSlot } = useAppContext();
   const [selectedDate, setSelectedDate] = useState(new Date().toISOString().split('T')[0]);
-  const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
+  const [selectedSlot, setSelectedSlot] = useState<Slot | null>(null);
   const [success, setSuccess] = useState(false);
 
   const dateSlots = slots.filter(s => s.date === selectedDate);
-  const selectedSlotObj = slots.find(s => s.id === selectedSlot);
-
   const isSubscribed = currentUser?.subscriptionStatus === 'active';
 
+  const handleSlotClick = (slot: Slot) => {
+    if (slot.status === 'available') {
+      setSelectedSlot(slot);
+    }
+  };
+
   const handleBook = () => {
-    if (!selectedSlotObj || !currentUser || !isSubscribed) return;
+    if (!selectedSlot || !currentUser || !isSubscribed) return;
 
     addBooking({
-      slotId: selectedSlotObj.id,
+      slotId: selectedSlot.id,
       userId: currentUser.id,
       userName: currentUser.name,
       userEmail: currentUser.email,
-      date: selectedSlotObj.date,
-      time: selectedSlotObj.startTime,
-      lane: selectedSlotObj.lane,
+      date: selectedSlot.date,
+      time: selectedSlot.startTime,
+      startTime: selectedSlot.startTime,
+      endTime: selectedSlot.endTime,
+      lane: selectedSlot.lane,
       status: 'confirmed',
       confirmationCode: generateConfirmationCode(),
+      type: 'member',
       createdAt: new Date().toISOString(),
     });
 
-    updateSlot(selectedSlotObj.id, { status: 'booked_member', bookedBy: currentUser.id });
+    updateSlot(selectedSlot.id, { status: 'booked_member', bookedBy: currentUser.id });
     setSuccess(true);
   };
 
@@ -49,13 +57,13 @@ export default function MemberBookingPage() {
     );
   }
 
-  if (success) {
+  if (success && selectedSlot) {
     return (
       <Card className="text-center p-12">
         <div className="text-5xl mb-4">✅</div>
         <h2 className="text-2xl font-bold mb-2">Lane Reserved!</h2>
         <p className="text-slate-600 mb-6">
-          Lane {selectedSlotObj?.lane} on {selectedSlotObj ? formatDate(new Date(selectedSlotObj.date)) : ''} at {selectedSlotObj?.startTime}
+          Lane {selectedSlot.lane} on {formatDate(new Date(selectedSlot.date + 'T12:00:00'))} at {selectedSlot.startTime}
         </p>
         <Button onClick={() => { setSuccess(false); setSelectedSlot(null); }}>Book Another</Button>
       </Card>
@@ -64,29 +72,35 @@ export default function MemberBookingPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center flex-wrap gap-4">
         <h1 className="text-2xl font-bold">Book a Lane</h1>
         <input
           type="date"
-          className="border rounded-md px-3 py-2"
+          className="border rounded-md px-3 py-2 text-sm"
           value={selectedDate}
           onChange={e => setSelectedDate(e.target.value)}
         />
       </div>
 
-      <SlotGrid
-        slots={dateSlots}
-        onSlotClick={(slot) => {
-          if (slot.status === 'available') setSelectedSlot(slot.id);
-        }}
-        selectedSlotId={selectedSlot}
-      />
+      {dateSlots.length === 0 ? (
+        <Card>
+          <p className="text-center text-slate-500 py-8">No slots available for this date. Please try another date.</p>
+        </Card>
+      ) : (
+        <SlotGrid
+          slots={dateSlots}
+          onSlotClick={handleSlotClick}
+          selectedSlotId={selectedSlot?.id}
+        />
+      )}
 
-      {selectedSlotObj && (
-        <Card className="flex justify-between items-center">
+      {selectedSlot && (
+        <Card className="flex justify-between items-center flex-wrap gap-4">
           <div>
-            <h3 className="font-bold">Selected: Lane {selectedSlotObj.lane}</h3>
-            <p className="text-sm text-slate-500">{formatDate(new Date(selectedSlotObj.date))} at {selectedSlotObj.startTime}</p>
+            <h3 className="font-bold">Selected: Lane {selectedSlot.lane}</h3>
+            <p className="text-sm text-slate-500">
+              {formatDate(new Date(selectedSlot.date + 'T12:00:00'))} at {selectedSlot.startTime} – {selectedSlot.endTime}
+            </p>
           </div>
           <Button onClick={handleBook}>Confirm Booking</Button>
         </Card>

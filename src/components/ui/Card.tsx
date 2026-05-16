@@ -1,17 +1,22 @@
-import React from 'react';
-import clsx from 'clsx';
-import styles from './Card.module.css';
+import type { ReactNode } from 'react';
+import { cn } from '@/lib/utils';
 
-type CardProps = {
-  children: React.ReactNode;
+interface CardProps {
+  children: ReactNode;
   className?: string;
-  padding?: 'sm' | 'md' | 'lg';
-  style?: React.CSSProperties;
-};
+  onClick?: () => void;
+}
 
-export default function Card({ children, className, padding = 'md', style }: CardProps) {
+export default function Card({ children, className, onClick }: CardProps) {
   return (
-    <div className={clsx(styles.card, styles[padding], className)} style={style}>
+    <div
+      className={cn(
+        'bg-white rounded-xl border border-slate-200 shadow-sm p-6',
+        onClick && 'cursor-pointer hover:shadow-md transition-shadow',
+        className
+      )}
+      onClick={onClick}
+    >
       {children}
     </div>
   );

@@ -1,11 +1,15 @@
 export type UserRole = 'admin' | 'member';
+export type SubscriptionType = 'yearly';
 
 export interface User {
   id: string;
   name: string;
   email: string;
+  password?: string;
   role: UserRole;
   subscriptionStatus?: 'active' | 'inactive';
+  subscriptionExpiry?: string;
+  joinedAt?: string;
 }
 
 export type SlotStatus = 'available' | 'booked_member' | 'booked_outsider' | 'tournament' | 'blocked';
@@ -17,6 +21,7 @@ export interface Slot {
   startTime: string;
   endTime: string;
   status: SlotStatus;
+  bookedBy?: string;
 }
 
 export interface Booking {
@@ -26,32 +31,60 @@ export interface Booking {
   userName?: string;
   slotId: string;
   date: string;
-  startTime: string;
-  endTime: string;
+  startTime?: string;
+  endTime?: string;
   lane: number;
   time?: string;
   status: 'confirmed' | 'cancelled';
+  confirmationCode?: string;
   createdAt: string;
+  type?: 'member' | 'outsider';
+  outsiderName?: string;
+  outsiderEmail?: string;
+  outsiderPhone?: string;
+}
+
+export type TournamentFormat = 'single-elimination' | 'round-robin' | 'custom';
+export type TournamentStatus = 'draft' | 'active' | 'completed';
+
+export interface TournamentParticipant {
+  userId: string;
+  status: 'pending' | 'accepted' | 'declined';
+}
+
+export interface TournamentMatch {
+  id: string;
+  round: number;
+  participant1Id: string;
+  participant2Id: string;
+  winnerId?: string;
+  score?: string;
+  slotId?: string;
 }
 
 export interface Tournament {
   id: string;
-  title: string;
+  name: string;
   description: string;
-  date: string;
-  time: string;
-  participants: string[]; // Array of user IDs
-  maxParticipants: number;
-  status: 'upcoming' | 'ongoing' | 'completed';
+  format: TournamentFormat;
+  startDate: string;
+  endDate: string;
+  participants: TournamentParticipant[];
+  matches?: TournamentMatch[];
+  status: TournamentStatus;
+  prize?: string;
+  maxParticipants?: number;
 }
 
 export interface Notification {
   id: string;
-  userId: string;
   title: string;
   message: string;
-  isRead: boolean;
+  type: 'info' | 'success' | 'warning' | 'error';
+  targetRole?: 'all' | 'admin' | 'member';
+  userId?: string;
   createdAt: string;
+  read: boolean;
 }
 
 export interface AppContextType {
@@ -61,11 +94,19 @@ export interface AppContextType {
   bookings: Booking[];
   tournaments: Tournament[];
   notifications: Notification[];
-  login: (email: string, password: string) => Promise<void>;
-  register: (name: string, email: string, password: string) => Promise<void>;
+  login: (email: string, password?: string) => User | null;
+  register: (data: Partial<User> & { name: string; email: string; password: string }) => User | null;
   logout: () => void;
-  createBooking: (booking: Omit<Booking, 'id'>) => void;
+  addBooking: (booking: Omit<Booking, 'id'>) => void;
   cancelBooking: (id: string) => void;
+  updateUser: (user: User) => void;
   updateSlot: (id: string, updates: Partial<Slot>) => void;
-  registerForTournament: (tournamentId: string, userId: string) => void;
+  generateDaySlots: (date: string) => void;
+  deleteSlot: (id: string) => void;
+  addTournament: (tournament: Omit<Tournament, 'id'>) => void;
+  updateTournament: (tournament: Tournament) => void;
+  deleteTournament: (id: string) => void;
+  addNotification: (notification: Omit<Notification, 'id'>) => void;
+  markNotificationRead: (id: string) => void;
+  updateSubscription: (userId: string, type: SubscriptionType) => void;
 }

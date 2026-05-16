@@ -1,4 +1,4 @@
-import { loadState, saveState } from './storage';
+import { saveState } from './storage';
 import type { User, Slot, Tournament, Notification } from '@/types';
 
 export function seedInitialData() {
@@ -26,17 +26,25 @@ export function seedInitialData() {
     joinedAt: new Date().toISOString(),
   };
 
-  // Seed slots for today and tomorrow - 16 lanes
+  const member2: User = {
+    id: 'member-2',
+    name: 'John Strike',
+    email: 'john@bowler.com',
+    password: 'password',
+    role: 'member',
+    subscriptionStatus: 'active',
+    subscriptionExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+    joinedAt: new Date().toISOString(),
+  };
+
   const slots: Slot[] = [];
   const dates = [
     new Date().toISOString().split('T')[0],
-    new Date(Date.now() + 86400000).toISOString().split('T')[0]
+    new Date(Date.now() + 86400000).toISOString().split('T')[0],
   ];
-  const startHour = 9;
-  const endHour = 22;
 
   dates.forEach(date => {
-    for (let h = startHour; h < endHour; h++) {
+    for (let h = 9; h < 22; h++) {
       const startTime = `${h.toString().padStart(2, '0')}:00`;
       const endTime = `${(h + 1).toString().padStart(2, '0')}:00`;
       for (let lane = 1; lane <= 16; lane++) {
@@ -60,10 +68,13 @@ export function seedInitialData() {
       format: 'single-elimination',
       startDate: dates[1],
       endDate: dates[1],
-      participants: [{ userId: member.id, status: 'pending' }],
+      participants: [
+        { userId: member.id, status: 'pending' },
+        { userId: member2.id, status: 'accepted' },
+      ],
       status: 'draft',
       prize: '$1000',
-    }
+    },
   ];
 
   const notifications: Notification[] = [
@@ -75,10 +86,10 @@ export function seedInitialData() {
       targetRole: 'all',
       createdAt: new Date().toISOString(),
       read: false,
-    }
+    },
   ];
 
-  saveState('users', [admin, member]);
+  saveState('users', [admin, member, member2]);
   saveState('slots', slots);
   saveState('tournaments', tournaments);
   saveState('notifications', notifications);

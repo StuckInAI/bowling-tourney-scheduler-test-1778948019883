@@ -1,45 +1,96 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAppContext } from '@/context/AppContext';
-import Input from '@/components/ui/Input';
+import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
 
 export default function RegisterPage() {
   const { register } = useAppContext();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ name: '', email: '', password: '' });
+  const [name, setName] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
-    const success = register(form.name, form.email, form.password);
-    if (success) {
-      navigate('/member/dashboard');
-    } else {
-      setError('An account with this email already exists.');
+    setLoading(true);
+    try {
+      const user = register({ name, email, password });
+      if (!user) {
+        setError('An account with this email already exists.');
+      } else {
+        navigate('/member/dashboard');
+      }
+    } catch {
+      setError('Registration failed. Please try again.');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f1f5f9', padding: '1rem' }}>
-      <div style={{ background: 'white', borderRadius: '12px', padding: '2rem', width: '100%', maxWidth: '420px', boxShadow: '0 4px 24px rgba(0,0,0,0.08)' }}>
-        <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-          <div style={{ fontSize: '2.5rem' }}>🎳</div>
-          <h1 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#1e3a5f', margin: '0.5rem 0 0.25rem' }}>Create Account</h1>
-          <p style={{ color: '#64748b', fontSize: '0.9rem' }}>Join BowlPro today</p>
+    <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
+      <Card className="w-full max-w-md p-8">
+        <div className="text-center mb-8">
+          <div className="text-4xl mb-2">🎳</div>
+          <h1 className="text-2xl font-bold">Create Account</h1>
+          <p className="text-slate-500 text-sm mt-1">Join BowlPro today</p>
         </div>
-        <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-          <Input label="Full Name" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} required />
-          <Input label="Email" type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} required />
-          <Input label="Password" type="password" value={form.password} onChange={e => setForm(f => ({ ...f, password: e.target.value }))} required />
-          {error && <div style={{ color: '#dc2626', fontSize: '0.875rem', background: '#fee2e2', padding: '0.75rem', borderRadius: '8px' }}>{error}</div>}
-          <Button type="submit" fullWidth>Create Account</Button>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Full Name</label>
+            <input
+              type="text"
+              className="w-full border rounded-md px-3 py-2 text-sm"
+              value={name}
+              onChange={e => setName(e.target.value)}
+              placeholder="Jane Bowler"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Email</label>
+            <input
+              type="email"
+              className="w-full border rounded-md px-3 py-2 text-sm"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="you@example.com"
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Password</label>
+            <input
+              type="password"
+              className="w-full border rounded-md px-3 py-2 text-sm"
+              value={password}
+              onChange={e => setPassword(e.target.value)}
+              placeholder="••••••••"
+              minLength={6}
+              required
+            />
+          </div>
+
+          {error && <p className="text-red-600 text-sm">{error}</p>}
+
+          <Button type="submit" className="w-full" disabled={loading}>
+            {loading ? 'Creating account...' : 'Create Account'}
+          </Button>
         </form>
-        <p style={{ textAlign: 'center', marginTop: '1.5rem', fontSize: '0.875rem', color: '#64748b' }}>
-          Already have an account? <Link to="/login" style={{ color: '#1e3a5f', fontWeight: 600 }}>Sign in</Link>
+
+        <p className="mt-4 text-center text-sm text-slate-600">
+          Already have an account?{' '}
+          <Link to="/login" className="text-blue-600 hover:underline">Sign in</Link>
         </p>
-      </div>
+        <p className="mt-2 text-center text-sm text-slate-600">
+          <Link to="/" className="text-slate-500 hover:underline">← Back to Home</Link>
+        </p>
+      </Card>
     </div>
   );
 }

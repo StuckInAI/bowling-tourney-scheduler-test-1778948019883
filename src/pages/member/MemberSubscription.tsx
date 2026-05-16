@@ -1,69 +1,73 @@
 import { useAppContext } from '@/context/AppContext';
 import Card from '@/components/ui/Card';
 import Button from '@/components/ui/Button';
-import type { SubscriptionType } from '@/types';
-
-const plans: { tier: SubscriptionType; name: string; price: string; features: string[] }[] = [
-  {
-    tier: 'none',
-    name: 'Free Member',
-    price: '$0',
-    features: ['Pay per game', 'Basic booking', 'No discounts']
-  },
-  {
-    tier: 'basic',
-    name: 'Basic Member',
-    price: '$19.99/mo',
-    features: ['10% discount on games', 'Priority booking', 'Free shoe rental']
-  },
-  {
-    tier: 'premium',
-    name: 'Premium Member',
-    price: '$39.99/mo',
-    features: ['Unlimited games', 'Exclusive tournaments', '25% discount on food', 'Guest passes']
-  }
-];
+import Badge from '@/components/ui/Badge';
+import { formatDate } from '@/lib/utils';
 
 export default function MemberSubscription() {
-  const { currentUser, updateUser } = useAppContext();
+  const { currentUser, updateSubscription } = useAppContext();
 
-  if (!currentUser) return null;
+  const isActive = currentUser?.subscriptionStatus === 'active';
+  const expiry = currentUser?.subscriptionExpiry;
 
-  const handleUpdate = (tier: SubscriptionType) => {
-    updateUser({ ...currentUser, subscription: tier });
+  const handleActivate = () => {
+    if (!currentUser) return;
+    updateSubscription(currentUser.id, 'yearly');
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '2rem' }}>
-      <header>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700 }}>Membership Plans</h1>
-        <p style={{ color: '#64748b' }}>Choose a plan that fits your bowling lifestyle.</p>
-      </header>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1.5rem' }}>
-        {plans.map(plan => {
-          const isActive = currentUser.subscription === plan.tier;
-          return (
-            <Card key={plan.tier} className={isActive ? 'active-plan' : ''} style={{ display: 'flex', flexDirection: 'column', border: isActive ? '2px solid var(--color-primary)' : '' }}>
-              <h3 style={{ fontSize: '1.25rem', fontWeight: 700, marginBottom: '0.5rem' }}>{plan.name}</h3>
-              <div style={{ fontSize: '1.5rem', fontWeight: 800, color: 'var(--color-primary)', marginBottom: '1.5rem' }}>{plan.price}</div>
-              <ul style={{ listStyle: 'none', padding: 0, margin: '0 0 2rem 0', display: 'flex', flexDirection: 'column', gap: '0.75rem', flex: 1 }}>
-                {plan.features.map(f => (
-                  <li key={f} style={{ fontSize: '0.9rem', color: '#475569', display: 'flex', alignItems: 'center', gap: '0.5rem' }}>✅ {f}</li>
-                ))}
-              </ul>
-              <Button 
-                fullWidth 
-                variant={isActive ? 'secondary' : 'primary'} 
-                disabled={isActive}
-                onClick={() => handleUpdate(plan.tier)}
-              >
-                {isActive ? 'Current Plan' : 'Select Plan'}
-              </Button>
-            </Card>
-          );
-        })}
+    <div className="flex flex-col gap-6 max-w-lg">
+      <div>
+        <h1 className="text-2xl font-bold">Subscription</h1>
+        <p className="text-slate-500">Manage your yearly membership.</p>
       </div>
+
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-bold text-lg">Yearly Membership</h2>
+          <Badge variant={isActive ? 'success' : 'danger'}>
+            {isActive ? 'Active' : 'Inactive'}
+          </Badge>
+        </div>
+        <div className="flex flex-col gap-2 text-sm text-slate-600 mb-6">
+          <div className="flex items-center gap-2">✅ <span>Book lanes any time online</span></div>
+          <div className="flex items-center gap-2">✅ <span>Join exclusive tournaments</span></div>
+          <div className="flex items-center gap-2">✅ <span>Priority lane selection</span></div>
+          <div className="flex items-center gap-2">✅ <span>Cancel bookings up to 2 hours before</span></div>
+        </div>
+        {isActive && expiry ? (
+          <div className="bg-green-50 border border-green-200 rounded-lg p-4 text-sm text-green-800">
+            <strong>Active until:</strong> {formatDate(new Date(expiry))}
+          </div>
+        ) : (
+          <div className="flex flex-col gap-3">
+            <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 text-sm text-orange-800">
+              Your membership is inactive. Activate to access member features.
+            </div>
+            <Button onClick={handleActivate} className="w-full">
+              Activate Yearly Membership ($99/year)
+            </Button>
+          </div>
+        )}
+      </Card>
+
+      <Card>
+        <h2 className="font-bold mb-3">Plan Details</h2>
+        <div className="flex justify-between text-sm py-2 border-b">
+          <span className="text-slate-500">Plan</span>
+          <span className="font-medium">Yearly</span>
+        </div>
+        <div className="flex justify-between text-sm py-2 border-b">
+          <span className="text-slate-500">Price</span>
+          <span className="font-medium">$99 / year</span>
+        </div>
+        <div className="flex justify-between text-sm py-2">
+          <span className="text-slate-500">Status</span>
+          <span className={`font-medium ${isActive ? 'text-green-600' : 'text-red-600'}`}>
+            {isActive ? 'Active' : 'Inactive'}
+          </span>
+        </div>
+      </Card>
     </div>
   );
 }

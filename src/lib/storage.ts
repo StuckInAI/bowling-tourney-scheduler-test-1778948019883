@@ -1,20 +1,16 @@
-const STORAGE_KEY = 'bowling_app_state';
-
-export function loadState<T = unknown>(): T | null {
+export function saveState<T>(key: string, value: T): void {
   try {
-    const serialized = localStorage.getItem(STORAGE_KEY);
-    if (!serialized) return null;
-    return JSON.parse(serialized) as T;
+    localStorage.setItem(key, JSON.stringify(value));
   } catch {
-    return null;
+    // ignore
   }
 }
 
-export function saveState<T = unknown>(value: T): void {
+export function loadState<T>(key: string): T | null {
   try {
-    const serialized = JSON.stringify(value);
-    localStorage.setItem(STORAGE_KEY, serialized);
+    const val = localStorage.getItem(key);
+    return val ? (JSON.parse(val) as T) : null;
   } catch {
-    // ignore
+    return null;
   }
 }

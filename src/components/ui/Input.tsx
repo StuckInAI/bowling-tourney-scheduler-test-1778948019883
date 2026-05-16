@@ -1,48 +1,24 @@
-import clsx from 'clsx';
-import styles from './Input.module.css';
+import type { InputHTMLAttributes } from 'react';
+import { cn } from '@/lib/utils';
 
-type InputProps = {
+interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
   label?: string;
-  type?: string;
-  value: string;
-  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
-  placeholder?: string;
-  required?: boolean;
-  disabled?: boolean;
   error?: string;
-  className?: string;
-  min?: string;
-  max?: string;
-};
+}
 
-export default function Input({
-  label,
-  type = 'text',
-  value,
-  onChange,
-  placeholder,
-  required,
-  disabled,
-  error,
-  className,
-  min,
-  max,
-}: InputProps) {
+export default function Input({ label, error, className, ...props }: InputProps) {
   return (
-    <div className={clsx(styles.group, className)}>
-      {label && <label className={styles.label}>{label}{required && <span className={styles.req}> *</span>}</label>}
+    <div className="flex flex-col gap-1">
+      {label && <label className="text-sm font-medium text-slate-700">{label}</label>}
       <input
-        type={type}
-        value={value}
-        onChange={onChange}
-        placeholder={placeholder}
-        required={required}
-        disabled={disabled}
-        min={min}
-        max={max}
-        className={clsx(styles.input, error && styles.inputError)}
+        className={cn(
+          'border rounded-md px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent',
+          error && 'border-red-400',
+          className
+        )}
+        {...props}
       />
-      {error && <span className={styles.error}>{error}</span>}
+      {error && <span className="text-xs text-red-600">{error}</span>}
     </div>
   );
 }

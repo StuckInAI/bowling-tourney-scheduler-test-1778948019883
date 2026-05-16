@@ -5,46 +5,101 @@ import Badge from '@/components/ui/Badge';
 import { formatDate } from '@/lib/utils';
 
 export default function MemberTournaments() {
-  const { currentUser, tournaments, registerForTournament } = useAppContext();
+  const { currentUser, tournaments, updateTournament } = useAppContext();
+
+  const myTournaments = tournaments.filter(t =>
+    t.participants.some(p => p.userId === currentUser?.id)
+  );
+
+  const handleRespond = (tournamentId: string, response: 'accepted' | 'declined') => {
+    const tournament = tournaments.find(t => t.id === tournamentId);
+    if (!tournament || !currentUser) return;
+    const updated = {
+      ...tournament,
+      participants: tournament.participants.map(p =>
+        p.userId === currentUser.id ? { ...p, status: response } : p
+      ),
+    };
+    updateTournament(updated);
+  };
+
+  const getMyStatus = (tournament: typeof tournaments[0]) =>
+    tournament.participants.find(p => p.userId === currentUser?.id)?.status;
+
+  const statusVariant = (status: string) => {
+    switch (status) {
+      case 'accepted': return 'success' as const;
+      case 'declined': return 'danger' as const;
+      case 'pending': return 'warning' as const;
+      default: return 'neutral' as const;
+    }
+  };
 
   return (
-    <div>
-      <header style={{ marginBottom: '2rem' }}>
-        <h1 style={{ fontSize: '1.875rem', fontWeight: 700 }}>Tournaments</h1>
-        <p style={{ color: '#64748b' }}>Join competitive events and win prizes.</p>
-      </header>
-
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(350px, 1fr))', gap: '1.5rem' }}>
-        {tournaments.map((t) => {
-          const isRegistered = currentUser ? t.participants.includes(currentUser.id) : false;
-          const isFull = t.participants.length >= t.maxParticipants;
-
-          return (
-            <Card key={t.id} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                <h3 style={{ fontWeight: 700 }}>{t.title}</h3>
-                <Badge variant={t.status === 'upcoming' ? 'info' : 'neutral'}>
-                  {t.status.toUpperCase()}
-                </Badge>
-              </div>
-              <p style={{ fontSize: '0.9rem', color: '#475569', flex: 1 }}>{t.description}</p>
-              <div style={{ fontSize: '0.875rem' }}>
-                <div style={{ color: '#475569' }}>📅 {formatDate(new Date(t.date))} at {t.time}</div>
-                <div style={{ color: '#475569' }}>👥 {t.participants.length} / {t.maxParticipants} participants</div>
-              </div>
-              
-              <Button 
-                fullWidth 
-                variant={isRegistered ? 'secondary' : 'accent'}
-                disabled={isRegistered || isFull || t.status !== 'upcoming'}
-                onClick={() => currentUser && registerForTournament(t.id, currentUser.id)}
-              >
-                {isRegistered ? 'Already Registered' : isFull ? 'Tournament Full' : 'Register Now'}
-              </Button>
-            </Card>
-          );
-        })}
+    <div className="flex flex-col gap-6">
+      <div>
+        <h1 className="text-2xl font-bold">My Tournaments</h1>
+        <p className="text-slate-500">View tournament invites and your bracket status.</p>
       </div>
+
+      {myTournaments.length === 0 ? (
+        <Card className="text-center py-12">
+          <div className="text-4xl mb-4">🏆</div>
+          <p className="text-slate-500">No tournament invites yet.</p>
+        </Card>
+      ) : (
+        <div className="flex flex-col gap-4">
+          {myTournaments.map(t => {
+            const myStatus = getMyStatus(t);
+            return (
+              <Card key={t.id}>
+                <div className="flex justify-between items-start flex-wrap gap-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-3 mb-1">
+                      <h3 className="font-bold text-lg">{t.name}</h3>
+                      <Badge variant={t.status === 'active' ? 'success' : t.status === 'draft' ? 'warning' : 'neutral'}>
+                        {t.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-slate-500 mb-2">{t.description}</p>
+                    <div className="flex flex-wrap gap-4 text-sm text-slate-600">
+                      <span>📅 {formatDate(new Date(t.startDate + 'T12:00:00'))}</span>
+                      <span>🎮 {t.format}</span>
+                      <span>👥 {t.participants.length} participants</span>
+                      {t.prize && <span>🏆 {t.prize}</span>}
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <Badge variant={statusVariant(myStatus || '')}>
+                      {myStatus || 'unknown'}
+                    </Badge>
+                    {myStatus === 'pending' && (
+                      <div className="flex gap-2">
+                        <Button size="sm" onClick={() => handleRespond(t.id, 'accepted')}>Accept</Button>
+                        <Button size="sm" variant="danger" onClick={() => handleRespond(t.id, 'declined')}>Decline</Button>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {t.matches && t.matches.length > 0 && (
+                  <div className="mt-4 pt-4 border-t">
+                    <h4 className="font-semibold text-sm mb-2">Match Schedule</h4>
+                    <div className="flex flex-col gap-1">
+                      {t.matches.filter(m => m.participant1Id === currentUser?.id || m.participant2Id === currentUser?.id).map(m => (
+                        <div key={m.id} className="text-sm bg-slate-50 rounded p-2 flex justify-between">
+                          <span>Round {m.round}</span>
+                          {m.winnerId && <Badge variant="success">Won</Badge>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,40 +1,69 @@
 import { useState } from 'react';
 import { useAppContext } from '@/context/AppContext';
 import Card from '@/components/ui/Card';
-import Input from '@/components/ui/Input';
 import Button from '@/components/ui/Button';
+import { getInitials, formatDate } from '@/lib/utils';
 
 export default function MemberProfile() {
   const { currentUser, updateUser } = useAppContext();
-  const [name, setName] = useState(currentUser?.name ?? '');
-  const [phone, setPhone] = useState(currentUser?.phone ?? '');
+  const [name, setName] = useState(currentUser?.name || '');
+  const [email, setEmail] = useState(currentUser?.email || '');
   const [saved, setSaved] = useState(false);
 
-  if (!currentUser) return null;
-
   const handleSave = () => {
-    updateUser({ ...currentUser, name, phone });
+    if (!currentUser) return;
+    updateUser({ ...currentUser, name, email });
     setSaved(true);
     setTimeout(() => setSaved(false), 2000);
   };
 
+  if (!currentUser) return null;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+    <div className="flex flex-col gap-6 max-w-lg">
       <div>
-        <h1 style={{ fontSize: '1.5rem', fontWeight: 700, marginBottom: '0.25rem' }}>My Profile</h1>
-        <p style={{ color: 'var(--color-gray-600)' }}>Manage your account details</p>
+        <h1 className="text-2xl font-bold">My Profile</h1>
+        <p className="text-slate-500">Manage your account details.</p>
       </div>
-      <div style={{ maxWidth: 500 }}>
-        <Card>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-            <Input label="Full Name" value={name} onChange={e => setName(e.target.value)} />
-            <Input label="Email" value={currentUser.email} onChange={() => {}} disabled />
-            <Input label="Phone" value={phone} onChange={e => setPhone(e.target.value)} placeholder="+1 234 567 8900" />
-            <Input label="Member Since" value={new Date(currentUser.joinedAt).toLocaleDateString()} onChange={() => {}} disabled />
-            <Button onClick={handleSave}>{saved ? '✓ Saved!' : 'Save Changes'}</Button>
+
+      <Card className="flex flex-col items-center gap-4 py-8">
+        <div className="w-20 h-20 rounded-full bg-blue-100 text-blue-700 flex items-center justify-center text-2xl font-bold">
+          {getInitials(currentUser.name)}
+        </div>
+        <div className="text-center">
+          <div className="font-bold text-lg">{currentUser.name}</div>
+          <div className="text-slate-500 text-sm">{currentUser.email}</div>
+          {currentUser.joinedAt && (
+            <div className="text-slate-400 text-xs mt-1">Member since {formatDate(new Date(currentUser.joinedAt))}</div>
+          )}
+        </div>
+      </Card>
+
+      <Card>
+        <h2 className="font-bold mb-4">Edit Profile</h2>
+        <div className="flex flex-col gap-4">
+          <div>
+            <label className="block text-sm font-medium mb-1">Full Name</label>
+            <input
+              className="w-full border rounded-md px-3 py-2 text-sm"
+              value={name}
+              onChange={e => setName(e.target.value)}
+            />
           </div>
-        </Card>
-      </div>
+          <div>
+            <label className="block text-sm font-medium mb-1">Email</label>
+            <input
+              type="email"
+              className="w-full border rounded-md px-3 py-2 text-sm"
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+            />
+          </div>
+          <Button onClick={handleSave}>
+            {saved ? '✅ Saved!' : 'Save Changes'}
+          </Button>
+        </div>
+      </Card>
     </div>
   );
 }

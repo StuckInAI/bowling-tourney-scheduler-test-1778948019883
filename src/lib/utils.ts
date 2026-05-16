@@ -13,7 +13,16 @@ export function formatDate(date: Date): string {
 }
 
 export function formatTime(time: string): string {
-  return time; // Simple string passthrough since we use 'HH:mm'
+  return time;
+}
+
+export function getInitials(name: string): string {
+  return name
+    .split(' ')
+    .map(n => n[0])
+    .join('')
+    .toUpperCase()
+    .slice(0, 2);
 }
 
 export function generateConfirmationCode(): string {
