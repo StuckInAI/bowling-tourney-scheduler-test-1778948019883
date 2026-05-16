@@ -1,63 +1,62 @@
 export type UserRole = 'admin' | 'member';
-
-export type SubscriptionType = 'none' | 'basic' | 'premium';
+export type SubscriptionType = 'none' | 'basic' | 'premium' | 'pro';
 
 export interface User {
   id: string;
-  name: string;
   email: string;
+  name: string;
   role: UserRole;
+  phone: string;
+  joinedAt: string;
   subscription: SubscriptionType;
+  subscriptionStatus: 'active' | 'expired' | 'canceled';
 }
 
-export type BookingStatus = 'confirmed' | 'cancelled' | 'completed';
+export interface Tournament {
+  id: string;
+  name: string;
+  startDate: string;
+  endDate: string;
+  description: string;
+  prize?: string;
+  participants: number;
+  status: 'upcoming' | 'ongoing' | 'completed';
+}
+
+export interface Slot {
+  id: string;
+  laneId: number;
+  startTime: string;
+  endTime: string;
+  date: string;
+  isBooked: boolean;
+  bookedByType?: 'member' | 'outsider' | 'tournament' | 'blocked';
+}
 
 export interface Booking {
   id: string;
   userId: string;
   userName: string;
-  lane: number;
-  laneNumber?: number;
+  slotId: string;
+  laneId: number;
+  startTime: string;
+  endTime: string;
   date: string;
-  time: string;
-  startTime?: string;
-  endTime?: string;
-  status: BookingStatus;
-  isGuest?: boolean;
+  status: 'confirmed' | 'cancelled' | 'attended';
+  type: 'member' | 'outsider';
+  notes?: string;
 }
 
-export type TournamentStatus = 'upcoming' | 'active' | 'draft' | 'completed';
-
-export interface Participant {
-  userId: string;
-  name: string;
-  registeredAt: string;
-}
-
-export interface Tournament {
+export interface Notification {
   id: string;
+  userId: string;
   title: string;
-  description: string;
-  date: string;
-  time: string;
-  status: TournamentStatus;
-  maxParticipants: number;
-  participants: Participant[];
-  currentParticipants: number;
-  registeredUserIds: string[];
+  message: string;
+  createdAt: string;
+  isRead: boolean;
 }
 
-export interface AppContextType {
-  currentUser: User | null;
-  setCurrentUser: (user: User | null) => void;
-  bookings: Booking[];
-  setBookings: (bookings: Booking[]) => void;
-  tournaments: Tournament[];
-  setTournaments: (tournaments: Tournament[]) => void;
-  login: (email: string) => boolean;
-  logout: () => void;
-  updateUser: (user: User) => void;
-  registerForTournament: (tournamentId: string) => void;
-  addBooking: (booking: Omit<Booking, 'id'>) => void;
-  cancelBooking: (bookingId: string) => void;
-}
+export type LoginCredentials = {
+  email: string;
+  password?: string;
+};
